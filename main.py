@@ -35,7 +35,7 @@ def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, g
             elif dataset == "Emnist10":
                 model = Mclr_Logistic(input_dim=784, output_dim=10).to(device)
             elif dataset == "Cicids":
-                model = Mclr_Logistic(input_dim=78, output_dim=8).to(device)
+                model = Mclr_Logistic(input_dim=79, output_dim=9).to(device)
             elif dataset == "Cifar100":
                 model = Mclr_Logistic(input_dim=3072, output_dim=100).to(device)
             else:
@@ -56,7 +56,7 @@ def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, g
 
         if model_name == "dnn":
             if dataset == "Cicids":
-                model = DNN(78, 100, 8).to(device)
+                model = DNN(79, 100, 9).to(device)
             elif dataset == "Mnist":
                 model = DNN().to(device)
             elif dataset == "Synthetic":

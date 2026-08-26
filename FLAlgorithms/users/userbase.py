@@ -186,8 +186,13 @@ class User:
             for x, y in self.testloaderfull:
                 x, y = x.to(self.device), y.to(self.device)
                 pred = torch.argmax(self.model(x), dim=1)
-                for t, q in zip(y.cpu().numpy(), pred.cpu().numpy()):
-                    cm[int(t), int(q)] += 1
+                # vectorised: a python zip over 100k rows per client per round
+                # dominates the whole run
+                t = y.cpu().numpy().astype(_np.int64)
+                q = pred.cpu().numpy().astype(_np.int64)
+                cm += _np.bincount(t * num_classes + q,
+                                   minlength=num_classes * num_classes
+                                   ).reshape(num_classes, num_classes)
         self.update_parameters(self.local_model)
         return cm
 
