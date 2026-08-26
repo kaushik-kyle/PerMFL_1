@@ -357,6 +357,8 @@ if __name__ == "__main__":
     parser.add_argument("--recluster_from", type=int, default=1, help="first global round at which reclustering is considered")
     parser.add_argument("--eps_hi", type=float, default=0.0, help="CFMD-i: recluster only if max pairwise client difference exceeds this")
     parser.add_argument("--eps_lo", type=float, default=float("inf"), help="CFMD-i: and only if mean pairwise difference stays below this")
+    parser.add_argument("--recluster_every", type=int, default=1,
+                        help="1 = reform teams every round; 0 = form once at --recluster_from then hold fixed")
     parser.add_argument("--pca_dim", type=int, default=8, help="MCTC: PCA components before cosine similarity")
    
     parser.add_argument("--weight_scale", type=float, default=0.1)
@@ -396,7 +398,8 @@ if __name__ == "__main__":
 
     main(
         cluster_cfg=dict(signal=args.team_signal, start=args.recluster_from,
-                         eps_hi=args.eps_hi, eps_lo=args.eps_lo, pca_dim=args.pca_dim),
+                         eps_hi=args.eps_hi, eps_lo=args.eps_lo, pca_dim=args.pca_dim,
+                         every=args.recluster_every),
         dataset=args.dataset,
         algorithm=args.algorithm,
         model_name=args.model_name,

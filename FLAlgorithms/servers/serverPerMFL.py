@@ -68,6 +68,8 @@ class PerMFL():
         self.team_test_loss = [[] for _ in range(num_teams)]
 
 
+        self.global_f1 = []
+        self.per_f1 = []
         self.global_train_acc = []
         self.global_test_acc = [] 
         self.global_train_loss = []
@@ -168,6 +170,27 @@ class PerMFL():
         5. self.team : list of team update
         """
         
+    def _pooled_f1(self):
+        """Macro F1 for the global model and for the personal models.
+
+        Both pooled: every client's confusion matrix is summed before the F1
+        is taken, so the score is over one combined test set rather than an
+        average of per-client scores. Per-client averaging flatters
+        personalisation, since each device is graded only on the classes it
+        holds.
+        """
+        from FLAlgorithms.metrics import macro_f1, num_classes_of
+        C = num_classes_of(self.model)
+        cm_g = np.zeros((C, C), dtype=np.int64)
+        cm_p = np.zeros((C, C), dtype=np.int64)
+        for grp in range(self.group):
+            for u in self.users[grp]:
+                cm_g += u.confusion(self.model.parameters(), C)
+        for u in (self.participated_devices or
+                  [u for grp in range(self.group) for u in self.users[grp]]):
+            cm_p += u.confusion_personalized(C)
+        return macro_f1(cm_g)[0], macro_f1(cm_p)[0], cm_g, cm_p
+
     def _recompute_tau(self):
         self.total_train_samples = 0
         for grp in range(self.group):
@@ -212,6 +235,8 @@ class PerMFL():
             except (IndexError, ValueError, TypeError):
                 ari = None
         self.recluster_log.append((rnd, True, mx, mean, ari))
+        if cfg.get("every", 1) == 0:      # form teams once, then hold fixed
+            self.derive_teams = False
         print("  [recluster] round %d  max=%.4f mean=%.4f  sizes=%s  ARI=%s"
               % (rnd, mx, mean, [len(t) for t in teams],
                  "n/a" if ari is None else round(ari, 4)))
@@ -401,6 +426,8 @@ class PerMFL():
             hf.create_dataset('global_train_loss', data=self.global_train_loss)
             hf.create_dataset('global_test_accuracy', data=self.global_test_acc)
             hf.create_dataset('global_test_loss', data=self.global_test_loss)
+            hf.create_dataset('global_macro_f1', data=self.global_f1)
+            hf.create_dataset('per_macro_f1', data=self.per_f1)
 
             # hf.create_dataset('team_train_accuracy', data=self.global_train_acc)
             # hf.create_dataset('team_train_loss', data=self.global_train_loss)
@@ -627,6 +654,10 @@ class PerMFL():
 
         
         
+        gf1, pf1, _, _ = self._pooled_f1()
+        self.global_f1.append(gf1)
+        self.per_f1.append(pf1)
+        print("Global macro F1: %.4f   Personal macro F1: %.4f" % (gf1, pf1))
         print("Global Trainning Accurancy: ", train_acc)
         print("Global Trainning Loss: ", train_loss)
         print("Global test accurancy: ", test_acc)
