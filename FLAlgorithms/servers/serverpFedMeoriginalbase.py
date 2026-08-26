@@ -245,7 +245,25 @@ class Server:
         print("Average Global Test Accurancy: ", test_acc)
         print("Average Global Test Loss: ", test_loss)
 
+    def pooled_f1(self):
+        """Pooled macro F1 for the global model and the personal models.
+
+        Same definition as serverPerMFL._pooled_f1 so the two are directly
+        comparable: per-client confusion matrices summed, then F1 taken once
+        over the full label set.
+        """
+        from FLAlgorithms.metrics import macro_f1, num_classes_of
+        C = num_classes_of(self.model)
+        cm_g = np.zeros((C, C), dtype=np.int64)
+        cm_p = np.zeros((C, C), dtype=np.int64)
+        for u in self.users:
+            cm_g += u.confusion(self.model.parameters(), C)
+            cm_p += u.confusion_personalized(C)
+        return macro_f1(cm_g)[0], macro_f1(cm_p)[0]
+
     def evaluate_personalized_model(self):
+        gf1, pf1 = self.pooled_f1()
+        print("Global macro F1: %.4f   Personal macro F1: %.4f" % (gf1, pf1))
         stats = self.test_persionalized_model()
         stats_train = self.train_error_and_loss_persionalized_model()
         test_acc = np.sum(stats[2]) * 1.0 / np.sum(stats[1])

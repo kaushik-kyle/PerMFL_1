@@ -36,6 +36,8 @@ def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, g
                 model = Mclr_Logistic(input_dim=784, output_dim=10).to(device)
             elif dataset == "Cicids":
                 model = Mclr_Logistic(input_dim=79, output_dim=9).to(device)
+            elif dataset == "Nslkdd":
+                model = Mclr_Logistic(input_dim=122, output_dim=5).to(device)
             elif dataset == "Cifar100":
                 model = Mclr_Logistic(input_dim=3072, output_dim=100).to(device)
             else:
@@ -55,7 +57,9 @@ def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, g
                 model = CNNCifar100().to(device)
 
         if model_name == "dnn":
-            if dataset == "Cicids":
+            if dataset == "Nslkdd":
+                model = DNN(122, 100, 5).to(device)
+            elif dataset == "Cicids":
                 model = DNN(79, 100, 9).to(device)
             elif dataset == "Mnist":
                 model = DNN().to(device)
@@ -288,6 +292,7 @@ if __name__ == "__main__":
                                                                         "Emnist",
                                                                         "Emnist10",
                                                                         "Cicids",
+                                                                        "Nslkdd",
                                                                         "Cifar100",
                                                                         "Movielens"])
     parser.add_argument("--model_name", type=str, default="dnn", choices=["dnn",

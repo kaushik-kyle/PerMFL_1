@@ -1332,6 +1332,13 @@ def read_data(dataset, num_users, num_labels, num_groups, group_division):
         print("groups", groups)
         # return clients, groups, train_data, test_data
     
+    elif dataset == "Nslkdd":
+        print("reading from NSL-KDD (4 attack domains, canonical split)")
+        from utils.nslkdd import read_nslkdd_data
+        clients, groups, train_data, test_data = read_nslkdd_data(num_users, num_labels, num_groups, group_division)
+        print("clients", clients)
+        print("groups", groups)
+
     elif dataset == "Cicids":
         print("reading from CICIDS2017 (day-domain clients, temporal split)")
         from utils.cicids import read_cicids_data

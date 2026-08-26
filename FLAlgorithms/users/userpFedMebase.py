@@ -126,6 +126,26 @@ class User:
         self.update_parameters(self.local_model)
         return train_acc, loss, self.train_samples
 
+    def confusion(self, model_params, num_classes):
+        """Confusion matrix [true, predicted] for the supplied parameters."""
+        import numpy as _np
+        self.model.eval()
+        self.update_parameters(model_params)
+        cm = _np.zeros((num_classes, num_classes), dtype=_np.int64)
+        with torch.no_grad():
+            for x, y in self.testloaderfull:
+                x, y = x.to(self.device), y.to(self.device)
+                q = torch.argmax(self.model(x), dim=1).cpu().numpy().astype(_np.int64)
+                t = y.cpu().numpy().astype(_np.int64)
+                cm += _np.bincount(t * num_classes + q,
+                                   minlength=num_classes * num_classes
+                                   ).reshape(num_classes, num_classes)
+        self.update_parameters(self.local_model)
+        return cm
+
+    def confusion_personalized(self, num_classes):
+        return self.confusion(self.persionalized_model_bar, num_classes)
+
     def get_next_train_batch(self):
         try:
             # Samples a new batch for persionalizing
