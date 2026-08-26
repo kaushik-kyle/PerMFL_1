@@ -48,6 +48,7 @@ RARE_FLOOR      = int(os.environ.get("CICIDS_RARE_FLOOR", "2000"))
 RARE_BELOW      = int(os.environ.get("CICIDS_RARE_BELOW", "20000"))
 CLIENTS_PER_RARE= int(os.environ.get("CICIDS_CLIENTS_PER_RARE", "3"))
 DIR_ALPHA       = float(os.environ.get("CICIDS_DIRICHLET_ALPHA", "0.5"))
+MIN_CLIENT_ROWS = int(os.environ.get("CICIDS_MIN_CLIENT_ROWS", "200"))
 
 DAY_FILES = {
     "Monday":    ["Monday-WorkingHours"],
@@ -190,6 +191,16 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             cut = (np.cumsum(p)[:-1] * len(rc)).astype(int)
             for u, part in enumerate(np.split(rc, cut)):
                 owner[part] = u
+    # A low dirichlet alpha can leave a client with no rows at all, and
+    # DataLoader rejects batch_size=0. Give any empty client a small stratified
+    # slice taken from the largest holder of each class.
+    for u in range(NUM_USERS):
+        if (owner == u).sum() >= MIN_CLIENT_ROWS:
+            continue
+        for c in range(C):
+            pool = np.where((y == c) & (owner != u))[0]
+            if len(pool) > MIN_CLIENT_ROWS:
+                owner[rng.choice(pool, MIN_CLIENT_ROWS // C + 1, replace=False)] = u
     else:
         raise ValueError(f"CICIDS_PARTITION must be domain or dirichlet, got {PARTITION!r}")
 
