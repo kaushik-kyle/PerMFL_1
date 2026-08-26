@@ -79,7 +79,17 @@ def _fix_timestamps(s):
     return dt
 
 
+CACHE = os.environ.get("CICIDS_CACHE", "data/cicids_clean.npz")
+
+
 def _load_all(verbose):
+    """Parse, clean and cache. The cleaning is config-independent, so the
+    cache is shared across every partition and split setting."""
+    if os.path.exists(CACHE):
+        z = np.load(CACHE, allow_pickle=True)
+        if verbose:
+            print(f"  cache hit: {CACHE} ({len(z['lab']):,} rows)")
+        return z["lab"], z["X"], z["day"], z["t"], list(z["feat"])
     frames = []
     for day in DOMAIN_ORDER:
         for frag in DAY_FILES[day]:
@@ -113,28 +123,35 @@ def _load_all(verbose):
     if verbose:
         print(f"  cleaned: {len(df):,} rows "
               f"(dropped {before - len(df):,} Inf/NaN and duplicates)")
-    return df.reset_index(drop=True), X.reset_index(drop=True), feat
+    lab = df["Label"].to_numpy()
+    Xa = X.to_numpy(np.float32)
+    day = df["_day"].to_numpy(np.int64)
+    t = df["_t"].to_numpy("datetime64[s]").astype(np.int64)
+    os.makedirs(os.path.dirname(CACHE) or ".", exist_ok=True)
+    np.savez_compressed(CACHE, lab=lab, X=Xa, day=day, t=t, feat=np.array(feat, object))
+    if verbose:
+        print(f"  cached -> {CACHE}")
+    return lab, Xa, day, t, feat
 
 
 def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=True):
     global CLASS_NAMES
     rng = np.random.RandomState(0)
-    df, Xdf, feat = _load_all(verbose)
+    lab, X, day, t, feat = _load_all(verbose)
 
-    counts = df["Label"].value_counts()
-    kept = sorted(counts[counts >= MIN_SAMPLES].index)
-    dropped = [(k, int(v)) for k, v in counts.items() if k not in set(kept)]
+    vc = pd.Series(lab).value_counts()
+    kept = sorted(vc[vc >= MIN_SAMPLES].index)
+    dropped = [(k, int(v)) for k, v in vc.items() if k not in set(kept)]
     if verbose and dropped:
         print(f"  dropped {len(dropped)} class(es) under {MIN_SAMPLES}: "
               + ", ".join(f"{n}({c})" for n, c in dropped))
-    mask = df["Label"].isin(kept).values
-    df, Xdf = df[mask].reset_index(drop=True), Xdf[mask].reset_index(drop=True)
+    keepset = set(kept)
+    mask = np.array([l in keepset for l in lab])
+    lab, X, day, t = lab[mask], X[mask], day[mask], t[mask]
     CLASS_NAMES = list(kept)
     C = len(CLASS_NAMES)
-    y = df["Label"].map({n: i for i, n in enumerate(CLASS_NAMES)}).to_numpy(np.int64)
-    X = Xdf.to_numpy(np.float32)
-    t = df["_t"].to_numpy()
-    day = df["_day"].to_numpy(np.int64)
+    lut = {n: i for i, n in enumerate(CLASS_NAMES)}
+    y = np.array([lut[l] for l in lab], dtype=np.int64)
     if verbose:
         print(f"  {C} classes: {CLASS_NAMES}")
 
@@ -183,11 +200,17 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
         if len(idx) <= MAX_PER_CLIENT:
             sel.append(idx); continue
         keep_parts, budget = [], MAX_PER_CLIENT
-        for c in range(C):
+        rare_here = [c for c in range(C)
+                     if cls_counts[c] < RARE_BELOW and (y[idx] == c).any()]
+        # Never let the rare-class reservation consume the whole budget, or a
+        # client ends up holding rare classes and no BENIGN at all.
+        per_rare = min(RARE_FLOOR, MAX_PER_CLIENT // (2 * max(len(rare_here), 1)))
+        for c in rare_here:
             ic = idx[y[idx] == c]
-            if len(ic) and cls_counts[c] < RARE_BELOW:
-                k = min(len(ic), RARE_FLOOR)
-                keep_parts.append(ic[:k]); budget -= k
+            # take the LAST rows in time order, so the per-class temporal split
+            # still cuts at the end of the class timeline rather than mid-way
+            k = min(len(ic), per_rare)
+            keep_parts.append(ic[-k:]); budget -= k
         common = np.concatenate([idx[y[idx] == c] for c in range(C)
                                  if cls_counts[c] >= RARE_BELOW and (y[idx] == c).any()] or
                                 [np.array([], dtype=np.int64)])
@@ -240,7 +263,6 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
         print(f"  features={len(feat)} partition={PARTITION} split={SPLIT} "
               f"train={sum(train_data['num_samples']):,} test={sum(test_data['num_samples']):,}")
     read_cicids_data.client_domain = client_domain
-    read_cicits_num_classes = C
     read_cicids_data.num_classes = C
     return train_data["users"], group, train_data["user_data"], test_data["user_data"]
 
@@ -256,7 +278,9 @@ def _report_heterogeneity(train_data, n, C):
     P = P / np.maximum(P.sum(1, keepdims=True), 1)
     def js(p, q):
         m = 0.5 * (p + q)
-        kl = lambda a, b: np.sum(np.where(a > 0, a * np.log2(a / np.where(b > 0, b, 1)), 0))
+        def kl(a, b):
+            m = a > 0
+            return float(np.sum(a[m] * np.log2(a[m] / np.where(b[m] > 0, b[m], 1))))
         return 0.5 * kl(p, m) + 0.5 * kl(q, m)
     d = [js(P[i], P[j]) for i in range(n) for j in range(i + 1, n)]
     eff = float(np.mean([np.exp(-np.sum(p[p > 0] * np.log(p[p > 0]))) for p in P]))

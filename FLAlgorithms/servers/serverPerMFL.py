@@ -191,6 +191,48 @@ class PerMFL():
             cm_p += u.confusion_personalized(C)
         return macro_f1(cm_g)[0], macro_f1(cm_p)[0], cm_g, cm_p
 
+    def per_client_report(self):
+        """Per-client and per-team accuracy and macro F1 at the end of training.
+
+        Pooled figures hide the structure here: a Monday client holding only
+        BENIGN scores perfectly and masks clients that hold attacks.
+        """
+        from FLAlgorithms.metrics import macro_f1, num_classes_of
+        C = num_classes_of(self.model)
+        rows, team_rows = [], []
+        for grp in range(self.group):
+            cm_team = np.zeros((C, C), dtype=np.int64)
+            for u in self.users[grp]:
+                cm = u.confusion_personalized(C)
+                cm_team += cm
+                acc = np.trace(cm) / max(cm.sum(), 1)
+                rows.append((int(u.id), grp, acc, macro_f1(cm)[0],
+                             int(cm.sum()), int((cm.sum(1) > 0).sum())))
+            team_rows.append((grp, np.trace(cm_team) / max(cm_team.sum(), 1),
+                              macro_f1(cm_team)[0], int(cm_team.sum())))
+        print("\n  per-client (personal model)")
+        print("   %4s %5s %9s %9s %8s %8s" % ("cli", "team", "acc", "macroF1", "test_n", "classes"))
+        for cid, g, a, f, n, k in sorted(rows):
+            print("   %4d %5d %9.4f %9.4f %8d %8d" % (cid, g, a, f, n, k))
+        acc = np.array([r[2] for r in rows]); f1 = np.array([r[3] for r in rows])
+        print("   client acc  mean %.4f  peak %.4f  min %.4f" % (acc.mean(), acc.max(), acc.min()))
+        print("   client F1   mean %.4f  peak %.4f  min %.4f" % (f1.mean(), f1.max(), f1.min()))
+        print("  per-team (pooled within team)")
+        for g, a, f, n in team_rows:
+            print("   team %d  acc %.4f  macroF1 %.4f  n %d" % (g, a, f, n))
+        ta = np.array([r[1] for r in team_rows]); tf = np.array([r[2] for r in team_rows])
+        print("   team acc    mean %.4f  peak %.4f" % (ta.mean(), ta.max()))
+        print("   team F1     mean %.4f  peak %.4f" % (tf.mean(), tf.max()))
+        gf = np.array(self.global_f1); pf = np.array(self.per_f1)
+        if len(gf):
+            print("  pooled over rounds: GM F1 final %.4f peak %.4f | PM F1 final %.4f peak %.4f"
+                  % (gf[-1], gf.max(), pf[-1], pf.max()))
+        ga = np.array(self.global_test_acc); pa = np.array(self.avg_per_test_acc)
+        if len(ga):
+            print("  pooled over rounds: GM acc final %.4f peak %.4f | PM acc final %.4f peak %.4f"
+                  % (ga[-1], ga.max(), pa[-1], pa.max()))
+        return rows, team_rows
+
     def _recompute_tau(self):
         self.total_train_samples = 0
         for grp in range(self.group):
@@ -795,6 +837,7 @@ class PerMFL():
 
             self.maybe_recluster(iters)
             
+        self.per_client_report()
         self.save_results()
         self.plot_results()
         # self.save_model()
