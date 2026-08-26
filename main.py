@@ -15,7 +15,7 @@ import os
 torch.manual_seed(0)
 
 
-def main(dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, alpha,
+def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, alpha,
         num_glob_iters,local_iters, team_epochs, optimizer, numusers, times, gpu, K,
         personal_learning_rate, i, num_teams, tot_users, num_labels, analysis, group_division,
         weight_scale, rho_offset, zeta, p_teams):
@@ -34,6 +34,8 @@ def main(dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, al
                 model = Mclr_Logistic(input_dim=784, output_dim=62).to(device)
             elif dataset == "Emnist10":
                 model = Mclr_Logistic(input_dim=784, output_dim=10).to(device)
+            elif dataset == "Cicids":
+                model = Mclr_Logistic(input_dim=78, output_dim=8).to(device)
             elif dataset == "Cifar100":
                 model = Mclr_Logistic(input_dim=3072, output_dim=100).to(device)
             else:
@@ -53,7 +55,9 @@ def main(dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, al
                 model = CNNCifar100().to(device)
 
         if model_name == "dnn":
-            if dataset == "Mnist":
+            if dataset == "Cicids":
+                model = DNN(78, 100, 8).to(device)
+            elif dataset == "Mnist":
                 model = DNN().to(device)
             elif dataset == "Synthetic":
                 model = DNN(60, 20, 10).to(device)
@@ -112,7 +116,8 @@ def main(dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, al
                             num_labels,
                             analysis,
                             group_division,
-                            p_teams)
+                            p_teams,
+                            cluster_cfg)
             
         #  Hierarchical Local SGD with Quantization 
 
@@ -282,6 +287,7 @@ if __name__ == "__main__":
                                                                         "FMnist",  
                                                                         "Emnist",
                                                                         "Emnist10",
+                                                                        "Cicids",
                                                                         "Cifar100",
                                                                         "Movielens"])
     parser.add_argument("--model_name", type=str, default="dnn", choices=["dnn",
@@ -345,7 +351,13 @@ if __name__ == "__main__":
     parser.add_argument("--analysis", type = str, default="perf",
                         help="What kind of analysis do you want (beta, gamma, lambda, eta, team_iters, team_number, poor_cluster)")
     
-    parser.add_argument("--group_division", type = int, default=1, help=" 0 : sequential division , 1 : random division , 2 : only one group")
+    parser.add_argument("--group_division", type = int, default=1, help=" 0 : sequential division , 1 : random division , 2 : only one group, 3 : derived from client updates")
+    parser.add_argument("--team_signal", type=str, default="residual", choices=["residual", "grad"],
+                        help="residual = theta - w, PerMFL's own proximal residual; grad = raw update, as SCMoE-PFL uses")
+    parser.add_argument("--recluster_from", type=int, default=1, help="first global round at which reclustering is considered")
+    parser.add_argument("--eps_hi", type=float, default=0.0, help="CFMD-i: recluster only if max pairwise client difference exceeds this")
+    parser.add_argument("--eps_lo", type=float, default=float("inf"), help="CFMD-i: and only if mean pairwise difference stays below this")
+    parser.add_argument("--pca_dim", type=int, default=8, help="MCTC: PCA components before cosine similarity")
    
     parser.add_argument("--weight_scale", type=float, default=0.1)
     parser.add_argument("--rho_offset", type=int, default=-3)
@@ -383,6 +395,8 @@ if __name__ == "__main__":
     print("=" * 80)
 
     main(
+        cluster_cfg=dict(signal=args.team_signal, start=args.recluster_from,
+                         eps_hi=args.eps_hi, eps_lo=args.eps_lo, pca_dim=args.pca_dim),
         dataset=args.dataset,
         algorithm=args.algorithm,
         model_name=args.model_name,

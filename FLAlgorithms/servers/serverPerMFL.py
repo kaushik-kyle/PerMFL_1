@@ -38,7 +38,8 @@ class PerMFL():
                 num_labels, 
                 analysis,
                 group_division,
-                p_teams):
+                p_teams,
+                cluster_cfg=None):
         
         
         self.tot_group_samples = [ [] for _ in range(num_teams) ]
@@ -119,7 +120,18 @@ class PerMFL():
           data[3] test data of users
         print("dataset :", dataset)
         """
-        data = read_data(dataset, tot_users, num_labels, num_teams, group_division)
+        # group_division 3 means derived teams. No loader can do that: teams are
+        # assigned before training, so no client updates exist yet. Start from
+        # the random partition and let the round loop recluster.
+        self.cluster_cfg = cluster_cfg or {}
+        self.derive_teams = (group_division == 3)
+        self.recluster_log = []
+        data = read_data(dataset, tot_users, num_labels, num_teams,
+                         1 if group_division == 3 else group_division)
+        if dataset == "Cicids":
+            # day-domain of each client, ground truth for the ARI report
+            from utils import cicids as _c
+            self.cluster_cfg.setdefault("truth", getattr(_c.read_cicids_data, "client_domain", None))
 
         # this function divide the dataset into non-iid manner in to n clients
         # total_users = len(data[1][0])
@@ -156,6 +168,54 @@ class PerMFL():
         5. self.team : list of team update
         """
         
+    def _recompute_tau(self):
+        self.total_train_samples = 0
+        for grp in range(self.group):
+            self.tot_group_samples[grp] = sum(u.train_samples for u in self.users[grp])
+            self.total_train_samples += self.tot_group_samples[grp]
+        for grp in range(self.group):
+            self.tau[grp] = self.tot_group_samples[grp] / self.total_train_samples
+
+    def maybe_recluster(self, rnd):
+        """CFMD-i trigger + MCTC formation. No-op unless --group_division 3."""
+        if not self.derive_teams:
+            return
+        cfg = self.cluster_cfg
+        if rnd < cfg.get("start", 1):
+            return
+        from FLAlgorithms.clustering.team_former import (
+            client_signal, should_recluster, form_teams, agreement)
+
+        flat, owner = [], []
+        for grp in range(self.group):
+            for u in self.users[grp]:
+                flat.append(client_signal(u, self.team[grp], cfg.get("signal", "residual")))
+                owner.append(u)
+
+        fire, mx, mean = should_recluster(flat, cfg.get("eps_lo", float("inf")),
+                                          cfg.get("eps_hi", 0.0))
+        if not fire:
+            self.recluster_log.append((rnd, False, mx, mean, None))
+            return
+
+        teams = form_teams(flat, self.group, pca_dim=cfg.get("pca_dim", 8))
+        self.users = [[owner[i] for i in t] for t in teams]
+        self._recompute_tau()
+
+        ari = None
+        truth = cfg.get("truth")
+        if truth is not None:
+            # teams index into `owner`, so ground truth must be reordered to
+            # owner order. user.id is the client index for Emnist10 and Cicids.
+            try:
+                ari = agreement(teams, [truth[int(u.id)] for u in owner])
+            except (IndexError, ValueError, TypeError):
+                ari = None
+        self.recluster_log.append((rnd, True, mx, mean, ari))
+        print("  [recluster] round %d  max=%.4f mean=%.4f  sizes=%s  ARI=%s"
+              % (rnd, mx, mean, [len(t) for t in teams],
+                 "n/a" if ari is None else round(ari, 4)))
+
     def model_initializer(self):
         for param in self.model.parameters():
             param.grad = torch.zeros_like(param.data)
@@ -701,6 +761,8 @@ class PerMFL():
             self.global_update() #done
 
             self.evaluate()
+
+            self.maybe_recluster(iters)
             
         self.save_results()
         self.plot_results()

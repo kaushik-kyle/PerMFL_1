@@ -1332,6 +1332,13 @@ def read_data(dataset, num_users, num_labels, num_groups, group_division):
         print("groups", groups)
         # return clients, groups, train_data, test_data
     
+    elif dataset == "Cicids":
+        print("reading from CICIDS2017 (day-domain clients, temporal split)")
+        from utils.cicids import read_cicids_data
+        clients, groups, train_data, test_data = read_cicids_data(num_users, num_labels, num_groups, group_division)
+        print("clients", clients)
+        print("groups", groups)
+
     elif dataset == "Emnist10":
         print("reading from Emnist10 (digits split, 10 classes)")
         clients, groups, train_data, test_data = read_EMnist10_data(num_users, num_labels, num_groups, group_division)
