@@ -191,6 +191,8 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             cut = (np.cumsum(p)[:-1] * len(rc)).astype(int)
             for u, part in enumerate(np.split(rc, cut)):
                 owner[part] = u
+    else:
+        raise ValueError(f"CICIDS_PARTITION must be domain or dirichlet, got {PARTITION!r}")
     # A low dirichlet alpha can leave a client with no rows at all, and
     # DataLoader rejects batch_size=0. Give any empty client a small stratified
     # slice taken from the largest holder of each class.
@@ -201,8 +203,6 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             pool = np.where((y == c) & (owner != u))[0]
             if len(pool) > MIN_CLIENT_ROWS:
                 owner[rng.choice(pool, MIN_CLIENT_ROWS // C + 1, replace=False)] = u
-    else:
-        raise ValueError(f"CICIDS_PARTITION must be domain or dirichlet, got {PARTITION!r}")
 
     # ---------------- per-client cap, rare classes protected ----------------
     sel = []
