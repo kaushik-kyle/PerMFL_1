@@ -32,6 +32,8 @@ def main(dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, al
                 model = Mclr_Logistic(784, 10).to(device)
             elif dataset == "Emnist":
                 model = Mclr_Logistic(input_dim=784, output_dim=62).to(device)
+            elif dataset == "Emnist10":
+                model = Mclr_Logistic(input_dim=784, output_dim=10).to(device)
             elif dataset == "Cifar100":
                 model = Mclr_Logistic(input_dim=3072, output_dim=100).to(device)
             else:
@@ -45,6 +47,8 @@ def main(dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, al
                 model = cnn_fmnist(10).to(device)
             elif dataset == "Emnist":
                 model = cnn_emnist().to(device)
+            elif dataset == "Emnist10":
+                model = cnn_emnist(output_dim=10).to(device)
             elif dataset == "Cifar100":
                 model = CNNCifar100().to(device)
 
@@ -277,6 +281,7 @@ if __name__ == "__main__":
                                                                         "Cifar10", 
                                                                         "FMnist",  
                                                                         "Emnist",
+                                                                        "Emnist10",
                                                                         "Cifar100",
                                                                         "Movielens"])
     parser.add_argument("--model_name", type=str, default="dnn", choices=["dnn",

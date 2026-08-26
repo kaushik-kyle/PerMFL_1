@@ -716,6 +716,128 @@ def read_EMnist_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division):
     
     return train_data['users'], group, train_data['user_data'], test_data['user_data']
 
+def read_EMnist10_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division):
+    """EMNIST digits split, 10 classes, as described in Appendix D.2.3 of
+    arXiv:2407.14251 ("we considered split by digits").
+
+    Structured on read_Mnist_data rather than read_EMnist_data, because the
+    latter comments out the pre-split shuffle and hardcodes group_division==0
+    to `i == 10 or i == 36`, which leaves the fourth team empty at 40 users.
+    """
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+
+    trainset = torchvision.datasets.EMNIST(root='./data', train=True, split='digits',
+                                           download=True, transform=transform)
+    testset = torchvision.datasets.EMNIST(root='./data', train=False, split='digits',
+                                          download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=len(trainset.data), shuffle=False)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset.data), shuffle=False)
+
+    for _, batch in enumerate(trainloader, 0):
+        trainset.data, trainset.targets = batch
+    for _, batch in enumerate(testloader, 0):
+        testset.data, testset.targets = batch
+
+    random.seed(5)
+    np.random.seed(9)
+
+    train_path = './data/train/emnist10_train.json'
+    test_path = './data/test/emnist10_test.json'
+    for pth in (train_path, test_path):
+        dir_path = os.path.dirname(pth)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+    data_image = []
+    data_label = []
+    data_image.extend(trainset.data.cpu().detach().numpy())
+    data_image.extend(testset.data.cpu().detach().numpy())
+    data_label.extend(trainset.targets.cpu().detach().numpy())
+    data_label.extend(testset.targets.cpu().detach().numpy())
+    data_image = np.array(data_image)
+    data_label = np.array(data_label)
+
+    emnist10_data = []
+    for i in trange(10, ncols=120):
+        idx = data_label == i
+        emnist10_data.append(data_image[idx])
+
+    ###### CREATE USER DATA SPLIT #######
+    X = [[] for _ in range(NUM_USERS)]
+    y = [[] for _ in range(NUM_USERS)]
+    idx = np.zeros(10, dtype=np.int64)
+    for user in range(NUM_USERS):
+        for j in range(NUM_LABELS):
+            l = (user + j) % 10
+            X[user] += emnist10_data[l][idx[l]:idx[l] + 10].tolist()
+            y[user] += (l * np.ones(10)).tolist()
+            idx[l] += 10
+
+    # Assign remaining samples by power law
+    props = np.random.lognormal(0, 2., (10, NUM_USERS, NUM_LABELS))
+    props = np.array([[[len(v) - NUM_USERS]] for v in emnist10_data]) * \
+            props / np.sum(props, (1, 2), keepdims=True)
+    for user in trange(NUM_USERS, ncols=120):
+        for j in range(NUM_LABELS):
+            l = (user + j) % 10
+            num_samples = int(props[l, user // int(NUM_USERS / 10), j])
+            num_samples = num_samples + random.randint(300, 600)
+            if NUM_USERS <= 20:
+                num_samples = num_samples * 2
+            if idx[l] + num_samples < len(emnist10_data[l]):
+                X[user] += emnist10_data[l][idx[l]:idx[l] + num_samples].tolist()
+                y[user] += (l * np.ones(num_samples)).tolist()
+                idx[l] += num_samples
+
+    train_data = {'users': [], 'user_data': {}, 'num_samples': []}
+    test_data = {'users': [], 'user_data': {}, 'num_samples': []}
+
+    group = [[] for _ in range(NUM_GROUPS)]
+    cl_per_grp = NUM_USERS // NUM_GROUPS
+    grp_idx = 0
+    for i in range(NUM_USERS):
+        uname = i
+        combined = list(zip(X[i], y[i]))
+        random.shuffle(combined)
+        X[i][:], y[i][:] = zip(*combined)
+
+        num_samples = len(X[i])
+        train_len = int(0.75 * num_samples)
+        test_len = num_samples - train_len
+
+        test_data['users'].append(uname)
+        test_data["user_data"][uname] = {'x': X[i][:test_len], 'y': y[i][:test_len]}
+        test_data['num_samples'].append(test_len)
+
+        train_data["user_data"][uname] = {'x': X[i][test_len:], 'y': y[i][test_len:]}
+        train_data['users'].append(uname)
+        train_data['num_samples'].append(train_len)
+
+        # sequential group division type
+        if group_division == 0:
+            group[grp_idx].append(i)
+            if i != 0 and (i + 1) % cl_per_grp == 0:
+                grp_idx += 1
+
+    # random group division type
+    user_list = []
+    if group_division == 1:
+        for i in range(NUM_USERS):
+            user_list.append(i)
+        current_time = time.time()
+        random.seed(current_time)
+        print(current_time)
+        random.shuffle(user_list)
+        print(user_list)
+        for i in range(NUM_USERS):
+            group[grp_idx].append(user_list[i])
+            if i != 0 and (i + 1) % cl_per_grp == 0:
+                grp_idx += 1
+
+    return train_data['users'], group, train_data['user_data'], test_data['user_data']
+
+
 ##########################################################################
 """
 Read Celeba data
@@ -925,6 +1047,7 @@ def generate_synthetic(NUM_USER, alpha, beta, iid):
 
 def read_synthetic_data(NUM_USERS, NUM_GROUPS, group_division):
     np.random.seed(0)
+    random.seed(0)
     train_data = {'users': [], 'user_data': {}, 'num_samples': []}
     test_data = {'users': [], 'user_data': {}, 'num_samples': []}
 
@@ -1209,6 +1332,12 @@ def read_data(dataset, num_users, num_labels, num_groups, group_division):
         print("groups", groups)
         # return clients, groups, train_data, test_data
     
+    elif dataset == "Emnist10":
+        print("reading from Emnist10 (digits split, 10 classes)")
+        clients, groups, train_data, test_data = read_EMnist10_data(num_users, num_labels, num_groups, group_division)
+        print("clients", clients)
+        print("groups", groups)
+
     elif dataset == "Emnist":
         print("reading from Emnist data")
         clients, groups, train_data, test_data = read_EMnist_data(num_users, num_labels, num_groups, group_division)
@@ -1265,6 +1394,13 @@ def read_user_data(index, data, dataset):
             torch.float32)
         y_test = torch.Tensor(y_test).type(torch.int64)
     
+    elif (dataset == "Emnist10"):
+        X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
+        X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
+        y_train = torch.Tensor(y_train).type(torch.int64)
+        X_test = torch.Tensor(X_test).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(torch.float32)
+        y_test = torch.Tensor(y_test).type(torch.int64)
+
     elif (dataset == "FMnist"):
         X_train, y_train, X_test, y_test = train_data['x'], train_data['y'], test_data['x'], test_data['y']
         X_train = torch.Tensor(X_train).view(-1, NUM_CHANNELS, IMAGE_SIZE, IMAGE_SIZE).type(

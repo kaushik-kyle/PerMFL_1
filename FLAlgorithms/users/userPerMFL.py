@@ -9,8 +9,8 @@ import copy
 class UserPerMFL(User):
     def __init__(self, device, numeric_id, train_data, test_data, model, model_name, 
                 batch_size, alpha, beta, lamda, local_epochs, dataset):
-        super().__init__(device, numeric_id, train_data, test_data, model, batch_size, alpha, beta, lamda,
-                         local_epochs)
+        super().__init__(device, numeric_id, train_data, test_data, model, batch_size=batch_size,
+                         alpha=alpha, beta=beta, lamda=lamda, local_epochs=local_epochs)
         # print("model[1] :", model[1])
         # input("press :")
         if (model_name == "Mclr_CrossEntropy"):
