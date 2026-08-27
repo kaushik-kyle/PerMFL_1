@@ -49,6 +49,20 @@ RARE_BELOW      = int(os.environ.get("CICIDS_RARE_BELOW", "20000"))
 CLIENTS_PER_RARE= int(os.environ.get("CICIDS_CLIENTS_PER_RARE", "3"))
 DIR_ALPHA       = float(os.environ.get("CICIDS_DIRICHLET_ALPHA", "0.5"))
 MIN_CLIENT_ROWS = int(os.environ.get("CICIDS_MIN_CLIENT_ROWS", "200"))
+# Attack classes per client for CICIDS_PARTITION=labelskew. Follows the
+# Label1/Label3/Label6 ladder of Stones From Other Hills (IEEE IoT J 2025),
+# which sweeps how many classes each client holds and reports FedAvg, Local
+# and PFL at every level. One class per client is maximal heterogeneity and
+# trivially favours local training; the ladder shows where federation starts
+# to pay.
+CLASSES_PER_CLIENT = int(os.environ.get("CICIDS_CLASSES_PER_CLIENT", "3"))
+# CICIDS_CROSS_TEST=1 distributes the held-out test rows across ALL clients
+# regardless of which classes each client trained on, so every client is
+# evaluated on all classes. Follows Stones From Other Hills (IEEE IoT J 2025)
+# Table II, where gateway 0 trains on classes 3-8 and is tested on 0,1,2,3,4,8,
+# explicitly to measure adaptation to unseen / zero-day traffic. Local training
+# cannot succeed here by construction; federation can.
+CROSS_TEST = int(os.environ.get("CICIDS_CROSS_TEST", "0"))
 
 DAY_FILES = {
     "Monday":    ["Monday-WorkingHours"],
@@ -178,6 +192,23 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
                 else:
                     take = members
                 owner[rc] = np.array(take)[np.arange(len(rc)) % len(take)]
+    elif PARTITION == "labelskew":
+        client_domain = [-1] * NUM_USERS
+        attacks = [c for c in range(C) if c != 0]
+        k = max(1, min(CLASSES_PER_CLIENT, len(attacks)))
+        # deal attack classes round-robin so every class has roughly the same
+        # number of holders and neighbouring clients overlap
+        holders = {c: [] for c in attacks}
+        for u in range(NUM_USERS):
+            for j in range(k):
+                holders[attacks[(u * k + j) % len(attacks)]].append(u)
+        for c in attacks:
+            rc = np.where(y == c)[0]
+            hs = holders[c] or list(range(NUM_USERS))
+            owner[rc] = np.array(hs)[np.arange(len(rc)) % len(hs)]
+        ben = np.where(y == 0)[0]                 # BENIGN to everyone
+        owner[ben] = np.arange(len(ben)) % NUM_USERS
+
     elif PARTITION == "dirichlet":
         client_domain = [-1] * NUM_USERS
         for c in range(C):
@@ -192,7 +223,7 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             for u, part in enumerate(np.split(rc, cut)):
                 owner[part] = u
     else:
-        raise ValueError(f"CICIDS_PARTITION must be domain or dirichlet, got {PARTITION!r}")
+        raise ValueError(f"CICIDS_PARTITION must be domain, labelskew or dirichlet, got {PARTITION!r}")
     # A low dirichlet alpha can leave a client with no rows at all, and
     # DataLoader rejects batch_size=0. Give any empty client a small stratified
     # slice taken from the largest holder of each class.
@@ -243,6 +274,20 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
         tr_all.append(np.concatenate(tr) if tr else np.array([], np.int64))
         sel[u] = (np.concatenate(tr) if tr else np.array([], np.int64),
                   np.concatenate(te) if te else np.array([], np.int64))
+
+    if CROSS_TEST:
+        # pool every client's held-out rows, then deal them back out to ALL
+        # clients stratified by class, so each client is tested on all classes
+        pooled_te = np.concatenate([te for _, te in sel]) if sel else np.array([], np.int64)
+        by_cls = {c: pooled_te[y[pooled_te] == c] for c in np.unique(y[pooled_te])}
+        for c in by_cls:
+            rng.shuffle(by_cls[c])
+        newte = [[] for _ in range(NUM_USERS)]
+        for c, rows in by_cls.items():
+            for u in range(NUM_USERS):
+                newte[u].append(rows[u::NUM_USERS])
+        sel = [(tr, np.sort(np.concatenate(newte[u])) if newte[u] else np.array([], np.int64))
+               for u, (tr, _) in enumerate(sel)]
 
     pooled = X[np.concatenate(tr_all)]
     mu, sd = pooled.mean(0), pooled.std(0); sd[sd == 0] = 1.0

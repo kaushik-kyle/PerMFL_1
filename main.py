@@ -15,7 +15,7 @@ import os
 torch.manual_seed(0)
 
 
-def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, alpha,
+def main(cluster_cfg, lamda_team, weighted_agg, dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, alpha,
         num_glob_iters,local_iters, team_epochs, optimizer, numusers, times, gpu, K,
         personal_learning_rate, i, num_teams, tot_users, num_labels, analysis, group_division,
         weight_scale, rho_offset, zeta, p_teams):
@@ -121,7 +121,9 @@ def main(cluster_cfg, dataset, algorithm, model_name, batch_size, beta, lamda, g
                             analysis,
                             group_division,
                             p_teams,
-                            cluster_cfg)
+                            cluster_cfg,
+                            lamda_team,
+                            weighted_agg)
             
         #  Hierarchical Local SGD with Quantization 
 
@@ -357,6 +359,10 @@ if __name__ == "__main__":
                         help="What kind of analysis do you want (beta, gamma, lambda, eta, team_iters, team_number, poor_cluster)")
     
     parser.add_argument("--group_division", type = int, default=1, help=" 0 : sequential division , 1 : random division , 2 : only one group, 3 : derived from client updates")
+    parser.add_argument("--lamda_team", type=float, default=None,
+                        help="weight the team update places on its members average; defaults to --lamda")
+    parser.add_argument("--weighted_agg", type=int, default=0,
+                        help="0 = uniform as Algorithm 1 specifies, 1 = sample-proportional as FedAvg and FL-IDS methods use")
     parser.add_argument("--team_signal", type=str, default="residual", choices=["residual", "grad"],
                         help="residual = theta - w, PerMFL's own proximal residual; grad = raw update, as SCMoE-PFL uses")
     parser.add_argument("--recluster_from", type=int, default=1, help="first global round at which reclustering is considered")
@@ -402,6 +408,8 @@ if __name__ == "__main__":
     print("=" * 80)
 
     main(
+        lamda_team=args.lamda_team,
+        weighted_agg=args.weighted_agg,
         cluster_cfg=dict(signal=args.team_signal, start=args.recluster_from,
                          eps_hi=args.eps_hi, eps_lo=args.eps_lo, pca_dim=args.pca_dim,
                          every=args.recluster_every),

@@ -39,7 +39,9 @@ class PerMFL():
                 analysis,
                 group_division,
                 p_teams,
-                cluster_cfg=None):
+                cluster_cfg=None,
+                lamda_team=None,
+                weighted_agg=0):
         
         
         self.tot_group_samples = [ [] for _ in range(num_teams) ]
@@ -98,6 +100,15 @@ class PerMFL():
 
         self.beta = beta
         self.lamda = lamda
+        # lamda does double duty in PerMFL: it is the device->team proximal
+        # pull in the device update AND the team's weight on its members'
+        # average in the team update. Those want opposite values -- low lamda
+        # personalises well but leaves the global model advancing 0.135% per
+        # round, high lamda trains the global model but collapses PM.
+        # lamda_team decouples the second role. Defaults to lamda, so the
+        # shipped behaviour is unchanged unless --lamda_team is given.
+        self.lamda_team = lamda if lamda_team is None else lamda_team
+        self.weighted_agg = weighted_agg
         self.gamma = gamma
         self.eta = eta
         self.alpha = alpha  # learning rate
@@ -328,8 +339,14 @@ class PerMFL():
         # print(total_train)
         # input("press")
         for user in self.selected_users:
-            # self.add_parameters(user, user.train_samples / total_train)
-            self.add_parameters(user, 1 / self.num_users)
+            # Uniform is what Algorithm 1 line 8 specifies. Sample-weighted is
+            # what FedAvg and every FL-IDS method surveyed (ClusterFed,
+            # Fed-ANIDS, Stones From Other Hills) uses. --weighted_agg 1
+            # selects the latter.
+            if self.weighted_agg:
+                self.add_parameters(user, user.train_samples / max(total_train, 1))
+            else:
+                self.add_parameters(user, 1 / self.num_users)
 
     def set_old_global_parameter(self):
         for old_param, global_param in zip(self.old_global_model.parameters(), self.model.parameters()):
@@ -391,8 +408,9 @@ class PerMFL():
         for team_param, old_glob_param, theta_bar_param in zip(self.team[grp].parameters(),
                                                                 self.old_global_model.parameters(),
                                                                 self.theta_bar.parameters()):
-            team_param.data = (1 - self.eta * self.lamda - self.eta * self.gamma) * team_param.data + self.eta * self.gamma * \
-                            old_glob_param.data + self.lamda * self.eta * theta_bar_param.data
+            lt = self.lamda_team
+            team_param.data = (1 - self.eta * lt - self.eta * self.gamma) * team_param.data + self.eta * self.gamma * \
+                            old_glob_param.data + lt * self.eta * theta_bar_param.data
 
     """
     calculate w_bar
@@ -406,8 +424,9 @@ class PerMFL():
         for param in self.w_bar.parameters():
             param.data = torch.zeros_like(param.data)
         ratio = float(1/self.group)
-        print(ratio)
         for grp in range(len(self.team)):
+            if self.weighted_agg:
+                ratio = self.tau[grp]        # sample-proportional, already computed
             
         #    for param, team_param in zip(self.w_bar.parameters(), self.team[grp].parameters()):
         #        param.data = param.data + self.tau[grp] * team_param.data
