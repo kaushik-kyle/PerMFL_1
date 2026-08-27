@@ -1,0 +1,132 @@
+\chapter{Testing and Verification}
+\label{chap:testing}
+
+Nothing in this project is user-facing, so testing means establishing that the
+pipeline produces what it claims and that measured differences come from the
+change under test. This chapter records how each part was verified and which
+checks caught real errors.
+
+\section{Verifying the reproduction}
+\label{sec:verify-repro}
+
+The first test was whether the unmodified implementation reproduces its
+published result. Running it on EMNIST-10 for four hundred global rounds gave a
+peak personalised accuracy of 96.45 per cent against the 96.49 reported in the
+paper, a difference of 0.04 percentage points.
+
+This matters more than a sanity check. The run carries the argument binding
+defect, since it is present in the released code, and it still lands on the
+published figure. That is evidence the defect was present when the paper's
+results were produced, and it licenses treating later measurements as changes
+to the method rather than symptoms of a broken build.
+
+\section{Loader invariants}
+\label{sec:loader-invariants}
+
+Each loader is checked against six invariants before use.
+
+No row appears in both the training and evaluation split for a client. Every
+class present in the corpus appears in both the pooled training and pooled
+evaluation sets. The pooled training features have approximately zero mean and
+unit standard deviation, confirming the scaler was fitted and applied. No
+non-finite values survive. The per-client, per-class split ratio lies within
+0.70 and 0.80 of the intended 0.75. No client is empty and no team is empty.
+
+The team check exists because it caught a real defect. One loader's sequential
+assignment hardcodes its group boundaries to two specific client indices rather
+than computing them, which at forty clients produces groups of eleven, twenty-six
+and three and leaves the fourth team with no members. A team with no members
+divides by zero when its sample proportion is computed.
+
+\section{Errors the checks caught}
+\label{sec:errors-caught}
+
+Four errors reached a run before being caught, and the way each surfaced is
+worth recording.
+
+\subsection{A split that produced empty test classes}
+
+The first temporal split ordered each client's rows by time and cut at
+seventy-five per cent. Attacks in CICIDS2017 occupy contiguous windows, so this
+gave the evaluation set whichever attack ran last and placed the others entirely
+in training. Wednesday clients trained on 2,913 denial-of-service samples and
+were evaluated on none.
+
+The symptom was not an exception. It was that the personalised models scored
+0.45 accuracy where a classifier that always predicts benign scores 0.82. A
+model below the majority-class baseline indicates a setup fault rather than a
+weak method, and that comparison is the check that caught it. The correction is
+to split each class on its own timeline.
+
+\subsection{A control flow error that passed the syntax check}
+
+A guard inserted between a conditional branch and its trailing \texttt{else}
+turned the construct into a \texttt{for}-\texttt{else}, which is valid Python.
+The \texttt{else} then bound to the loop and raised on every call. Eight queued
+runs each exited in three seconds. The parser had accepted the file.
+
+The lesson recorded here is that a syntax check is not an execution check. Every
+subsequent queue was preceded by a single short run of the same configuration.
+
+\subsection{An undefined name from statement ordering}
+
+A module-level assignment reading an environment variable was inserted above the
+import that provides the module it calls. Forty-six queued runs failed
+identically. Again the file parsed.
+
+\subsection{A metric measured against a moving target}
+
+Benign thinning was initially applied before the train and test split, so it
+thinned both. The accuracy floor moved from 0.8171 to 0.7008, meaning
+comparisons across thinning settings sat on different evaluation targets. The
+correction, following the reference implementation, applies thinning to the
+training split only, leaving the evaluation set at its natural class balance.
+The floors are now constant across settings.
+
+\section{Verifying the modifications}
+\label{sec:verify-mods}
+
+Each modification was verified by measuring the quantity it was supposed to
+change.
+
+For the argument binding fix, the optimiser's penalty weight was read directly
+before and after: twenty before, matching the local iteration count, and the
+supplied value after. The per-step pull changed from 0.2 to 0.05 as predicted.
+
+For seeding, an identical configuration was run at two seeds and the results
+compared. Before the change they were identical to four decimal places; after
+it they differed.
+
+For the synthetic split fix, the split was hashed across three separate
+processes. Before the change the three hashes differed; after, they matched.
+
+The clustering module was tested against synthetic data with known group
+structure: twenty points drawn from five well-separated latent clusters. It
+recovered them at an adjusted Rand index of 0.762 with equal group sizes, and
+the trigger fired on separated data while holding off on near-identical data.
+
+\section{Establishing what counts as a difference}
+\label{sec:noise-floor}
+
+A measurement is only interpretable against the variation of the measurement
+itself. Two runs of an identical configuration, differing only in their
+position in the experiment schedule, gave personalised macro F1 of 0.7318 and
+0.7244, a difference of 0.0074.
+
+Differences below roughly 0.01 are therefore not distinguishable from
+run-to-run variation, and a threshold of 0.03 was adopted before results were
+examined. Several comparisons fall below it and are reported as null rather than
+as small effects. The largest such is 0.0016, which is an order of magnitude
+inside the floor.
+
+\section{What was not tested}
+\label{sec:not-tested}
+
+There is no unit test suite. The base implementation ships none, and adding one
+would have meant characterising behaviour the project set out to question.
+Verification here is at the level of measured invariants and reproduced
+published figures, which suits an experimental study but would not suit
+software intended for use.
+
+The CUDA path is untested. All experiments ran on CPU and no GPU was available.
+The device selection logic is exercised only in its CPU branch.

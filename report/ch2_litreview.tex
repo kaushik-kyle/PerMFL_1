@@ -1,0 +1,156 @@
+\chapter{Literature Review}
+\label{chap:litreview}
+
+This chapter reviews the work the project builds on. It covers personalised
+federated learning, clustered and multi-tier variants, applications to
+intrusion detection, and the data quality literature specific to CICIDS2017.
+The final section identifies the gap the project addresses.
+
+\section{Federated learning under heterogeneity}
+\label{sec:fl-hetero}
+
+Federated averaging \parencite{mcmahan-2017} trains a single global model by
+averaging client updates. It assumes clients hold data drawn from a similar
+distribution. When they do not, the averaged model degrades, and the degradation
+is worse the more the client distributions differ.
+
+Two families of response exist. Personalised methods give each client its own
+model while sharing structure with the others. Clustered methods group clients
+by similarity and share within groups rather than globally.
+
+pFedMe \parencite{dinh-2020} takes the first route using Moreau envelopes. Each
+client solves a regularised local problem whose solution is pulled toward the
+global model by a penalty term, so the client model can specialise without
+drifting arbitrarily far. Ditto \parencite{li-2021} and Per-FedAvg
+\parencite{fallah-2020} pursue related ideas through different regularisation
+and meta-learning respectively.
+
+\section{Clustered and multi-tier methods}
+\label{sec:clustered}
+
+Clustered federated learning assumes clients fall into groups. Sattler et al.
+\parencite{sattler-2020} recursively bipartition clients by the cosine
+similarity of their updates, splitting a cluster when its members' gradients
+point in sufficiently different directions. The method splits but never merges
+or reassigns, which limits it when the grouping is initially wrong.
+
+FlexCFL \parencite{duan-2021} adds client migration between clusters to handle
+distribution shift, keeping the number of clusters fixed. FedDrift
+\parencite{jothimurugesan-2023} handles concept drift with both splits and
+merges. A recent survey \parencite{cfl-survey-2025} organises these approaches
+and notes that basic clustered methods, limited to splitting, perform poorly
+under complex drift.
+
+HCFL+ \parencite{hcfl-2025} generalises clustered federated learning into a
+four-tier framework with dynamic re-clustering, unifying soft and hard
+clustering under a common objective.
+
+SCMoE-PFL \parencite{scmoe-2026} combines soft clustering with a
+mixture-of-experts. Its multi-centre threshold clustering allows a client to
+belong to several clusters at once. Each cluster produces an expert model, each
+client separately trains a private model, and an energy-aware gating network
+fuses them. The clustering signal is the client gradient, L2-normalised to
+discard magnitude and projected by PCA before cosine similarity is taken, the
+projection being necessary because cosine similarity becomes uninformative in
+high dimensions.
+
+PerMFL \parencite{permfl-2024} differs from all of these in providing
+convergence guarantees. It also differs in assuming the grouping is given
+rather than derived. Its device update is
+\begin{equation}
+\theta_{i,j}^{t,k,l+1} = \theta_{i,j}^{t,k,l} - \alpha\nabla f_{i,j}(\theta_{i,j}^{t,k,l}) - \alpha\lambda\left(\theta_{i,j}^{t,k,l} - w_i^{t,k}\right),
+\label{eq:device}
+\end{equation}
+its team update
+\begin{equation}
+w_i^{t,k+1} = (1 - \eta\lambda - \eta\gamma)\,w_i^{t,k} + \eta\gamma x^t + \lambda\eta\,\bar{\theta}_i^{t,k},
+\label{eq:team}
+\end{equation}
+and its global update
+\begin{equation}
+x^{t+1} = (1 - \beta\gamma)x^t + \beta\gamma\bar{w}^t.
+\label{eq:global}
+\end{equation}
+The parameter $\lambda$ appears in both \eqref{eq:device} and \eqref{eq:team}.
+Section~\ref{sec:lambda-analysis} returns to this.
+
+\section{Federated learning for intrusion detection}
+\label{sec:fl-ids}
+
+CFMD-i \parencite{cfmdi-2026} applies clustered federated learning to intrusion
+detection across five datasets including CICIDS2017. It clusters by model
+discrepancy, switching between a parameter-space measure and an output-space
+Kullback-Leibler divergence according to a threshold that adapts to the current
+spread of pairwise similarities. Clustering is triggered adaptively rather than
+at a fixed round, on two conditions: the maximum inter-client model difference
+must exceed a threshold, indicating enough heterogeneity to distinguish groups,
+while the mean difference must stay below another, indicating shared structure
+remains. Its contribution is communication efficiency, reporting a reduction of
+over ninety-five per cent through parameter-difference transmission, adaptive
+leapfrog communication and quantised error feedback.
+
+Its client construction is relevant here. CFMD-i partitions traffic into attack
+domains and assigns each participant one domain in its first scenario and
+several in its second, so group structure exists by construction rather than
+being imposed by a random draw.
+
+ClusterFed \parencite{clusterfed-2025} uses self-supervised clustering with
+balanced assignment via Sinkhorn-Knopp, which prevents cluster collapse. It
+partitions clients by Dirichlet sampling at $\alpha = 0.1$.
+
+Stones From Other Hills \parencite{soh-2025} studies self-labelled personalised
+federated learning for IoT intrusion detection. Two aspects matter for this
+project. It sweeps the degree of label skew, reporting FedAvg, a local baseline
+and its own method at each level, and identifies an intermediate setting as the
+usable balance: too much class overlap leaves nothing for personalisation to
+exploit, too little prevents convergence. It also evaluates clients on classes
+absent from their training data, so that adaptation to unseen traffic can be
+measured.
+
+Fed-ANIDS \parencite{fedanids-2023} takes an anomaly detection approach,
+training autoencoders on normal traffic only and treating reconstruction error
+as an intrusion score.
+
+\section{Data quality in CICIDS2017}
+\label{sec:data-quality}
+
+CICIDS2017 \parencite{sharafaldin-2018} is the most used benchmark in this
+area, and the literature documents several defects that inflate reported
+results when unaddressed.
+
+Flow rate columns contain infinities where a rate was computed over a
+zero-length flow, and the dataset contains a substantial number of duplicate
+rows. Reported practice is to drop both, or to impute the infinities with a
+column median fitted inside the training fold. Identifier columns, addresses,
+ports, timestamps and flow identifiers, must be removed before the feature
+matrix is built, because a personalised model can otherwise score well by
+recognising which client it is serving.
+
+Percentile clipping is applied in several published pipelines to bound the
+extreme values typical of flow statistics.
+
+Class imbalance is severe. Benign traffic is roughly eighty-two per cent of the
+capture, so accuracy is uninformative: a classifier that never raises an alert
+scores above 0.81. Macro-averaged F1 weights each class equally and does not
+use the true negative cell, which is why it separates a working detector from a
+trivial one where accuracy does not.
+
+\section{Gap}
+\label{sec:gap}
+
+Three gaps motivate the project.
+
+PerMFL has not been evaluated on intrusion detection data. Its premise concerns
+known team structures, and intrusion detection supplies them naturally, but no
+published work tests it there.
+
+The clustered methods that do address intrusion detection derive their
+groupings and offer no convergence analysis; PerMFL offers the analysis but
+assumes the grouping. Neither literature examines what the assumed grouping
+actually contributes.
+
+Where clustering methods report null or weak results, the partition is rarely
+examined as a possible cause. Dirichlet partitioning produces a continuum of
+client distributions rather than discrete groups, so a clustering algorithm has
+nothing recoverable to find, and a null result measures the partition rather
+than the method.

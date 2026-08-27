@@ -1,0 +1,184 @@
+\chapter{Implementation}
+\label{chap:implementation}
+
+This chapter describes the data pipeline, the modifications made to the base
+implementation, and the defects found while making them.
+
+\section{Environment}
+\label{sec:environment}
+
+The base implementation ships no dependency versions. Packages were pinned to
+the releases current at the base paper's submission: torch 2.3.1, torchvision
+0.18.1, numpy 1.26.4, pandas 2.2.2. This is not conservatism for its own sake.
+The optimiser module uses a positional-alpha overload of \texttt{Tensor.add\_}
+that later torch releases reject, so the Per-FedAvg baseline fails outright on a
+current install.
+
+All experiments run on CPU. Threading was measured rather than assumed: the
+default of one thread per core is slower than a single thread for these model
+sizes, by twenty-two to thirty-nine per cent, because the matrix products are
+too small for the synchronisation cost to pay. Runs are therefore pinned to one
+thread and parallelised across configurations instead.
+
+\section{Data pipeline}
+\label{sec:pipeline}
+
+\subsection{CICIDS2017}
+
+Two distributions of CICIDS2017 exist. The machine learning variant carries
+seventy-eight features and a label; the traffic labelling variant adds flow
+identifier, addresses, ports and timestamp. Only the second supports a temporal
+split, and only the second supports the host-based partition, so it is the one
+used. This distinction matters beyond this project: a temporal split performed
+on the first variant can only be positional, since it holds no time column.
+
+Cleaning proceeds in four steps. One file contains 288,602 rows in which every
+field is empty; removing them leaves a total of 2,830,743, matching the
+canonical figure. Seven of the eight files record timestamps in twelve-hour
+form with no meridiem, so the Wednesday capture appears to run from 08:42 to
+02:43; since the capture window is 08:00 to 17:00, hours one to seven are
+afternoon and are advanced by twelve. Rows carrying infinities or missing values
+in the flow rate columns are dropped along with exact duplicates, 309,745 rows
+in total. Identifier columns are removed before the feature matrix is built.
+
+Classes below a configurable threshold are dropped. At 2,000 rows this removes
+Bot, the three web attack variants, Infiltration and Heartbleed, leaving nine
+classes. The threshold exists because a class with eleven rows in the entire
+capture cannot survive a seventy-five/twenty-five split, and its F1 contribution
+is noise that enters the macro average with equal weight.
+
+Feature values are clipped to percentile bounds fitted on the training split
+and then standardised, also on training statistics only. Clipping was added
+after measuring the range: fifty-eight of seventy-nine features have a
+maximum-to-median ratio above $10^4$ and forty-three above $10^6$.
+
+\subsection{NSL-KDD and TON-IoT}
+
+NSL-KDD ships a canonical train and test split, so no split has to be designed
+and the questions raised in Section~\ref{sec:eval-protocol} do not arise. Its
+three categorical columns are one-hot encoded, giving 122 features over five
+classes: normal plus the four documented attack domains.
+
+TON-IoT contributes its network subset, 211,043 rows over ten classes. It is
+included because it is near-balanced where CICIDS2017 is not: normal traffic is
+23.7 per cent against 81.7, so the accuracy floor is 0.2369 rather than 0.8171
+and macro F1 has room to move. Addresses are dropped as features, since the
+attacker hosts are a fixed range and would leak the label, but the destination
+address is retained to define the host-based partition.
+
+\section{Metric instrumentation}
+\label{sec:metrics-impl}
+
+The base implementation records accuracy and loss only. No confusion matrix is
+constructed anywhere in it, and the published paper reports no F1, recall or
+precision.
+
+A metrics module was added computing macro-averaged F1, precision, recall and
+false positive rate from a pooled confusion matrix. Two decisions in it matter.
+
+The average is taken over the complete label set, with classes absent from a
+test slice contributing zero. Averaging only over classes that happen to appear
+inflates personalised methods, because each device holds a subset of classes
+and would otherwise be graded only on those.
+
+The matrices are summed across clients before the F1 is taken. Averaging
+per-client F1 scores instead produces a different and more flattering number,
+for the same reason.
+
+Confusion accumulation is vectorised through \texttt{bincount}. The obvious
+Python loop over prediction pairs dominates the round loop at these test set
+sizes.
+
+\section{Modifications to the base implementation}
+\label{sec:modifications}
+
+Four changes were made, each defaulting to the shipped behaviour.
+
+\subsection{Argument binding}
+
+\texttt{UserPerMFL} passed five positional arguments into the six parameter
+slots that follow \texttt{beta} in the base class, shifting every subsequent
+binding by one. The \texttt{--lamda} argument was bound to \texttt{self.eta} and
+\texttt{--local\_iters} to \texttt{self.lamda}. The optimiser therefore received
+a penalty weight of twenty, the local iteration count, rather than the value
+supplied on the command line. The per-step pull toward the team model was 0.2
+where the paper's own setting gives 0.005, a factor of forty.
+
+The correction is keyword arguments. Since \texttt{self.eta},
+\texttt{self.gamma} and \texttt{self.local\_epochs} are assigned but never read
+in this class, the penalty weight is the only behavioural change.
+
+\subsection{Seeding}
+
+\texttt{torch.manual\_seed(0)} was fixed in the entry point, the loaders fix
+their own seeds, and client selection seeds on the round index. Under sequential
+team assignment nothing varied between repeats, so the repeat count produced
+identical runs and no standard deviation could be reported. This is consistent
+with the standard deviations of exactly zero reported throughout the base
+paper's main results table. A seed argument now drives all three.
+
+\subsection{Decoupled team weight}
+
+Equations~\eqref{eq:device} and~\eqref{eq:team} both contain $\lambda$.
+Section~\ref{sec:lambda-analysis} shows the two roles want opposed values. A
+second argument sets the team-update weight independently, defaulting to the
+device value so that unmodified behaviour is preserved.
+
+\subsection{Team formation from client updates}
+
+Teams are assigned in the data loader, before any client has trained, so no
+update-based grouping can be computed there. A clustering module was added that
+runs in the server's round loop instead. The signal is the proximal residual
+$\theta_{i,j} - w_i$, which the device update already computes. It measures how
+far a device would move given the pull its team exerts, which neither of the
+comparable methods can use, since neither has a proximal term. Formation follows
+SCMoE-PFL's procedure: L2 normalisation, PCA, cosine similarity, centres seeded
+from the least similar pairs. Assignment is hard and size-constrained rather
+than soft and overlapping, because the server sizes its team arrays statically
+and divides by per-team sample counts.
+
+\section{Defects in the base implementation}
+\label{sec:defects}
+
+Sixteen defects were catalogued. Those that affect results are listed here; the
+remainder appear in Appendix~\missing{ref}.
+
+\begin{description}
+  \item[Argument binding.] As above. Silently overrides a documented
+    hyperparameter.
+  \item[Non-reproducible partitioning.] Random team assignment reseeds on the
+    wall clock and prints the seed, so teams differ on every run at a fixed
+    torch seed. The clock seed then propagates into per-round team selection.
+  \item[Unseeded synthetic split.] The synthetic loader seeds numpy but not
+    Python's random module before the per-client shuffle, so the split differs
+    between processes. Verified by hashing across three runs.
+  \item[Broken partitioning mode.] One of the three team assignment modes
+    assigns the return value of an in-place shuffle, which is \texttt{None},
+    then indexes it. That mode has never executed.
+  \item[Dataset mislabelling.] The EMNIST path loads the sixty-two class
+    by-class split, which the paper distinguishes as a separate dataset. The
+    paper states the digits split was used.
+  \item[Unreachable branch.] A reshape guard tests a dataset name that differs
+    in case from the value the parser accepts, so that dataset skips the
+    reshape and its convolutional path cannot run.
+  \item[Silent no-op.] The experiment counter is both the loop start and
+    compared against the repeat count, so a start index at or above the repeat
+    count performs no work and exits zero.
+  \item[Result overwriting.] Output filenames encode the hyperparameters but
+    not the round count, client count or local iteration count, so runs
+    differing only in those overwrite each other.
+  \item[Unreachable algorithm.] The parser accepts an algorithm name that the
+    dispatch does not match, so selecting it raises a name error. It is one of
+    the base paper's headline comparison methods.
+  \item[Broken aggregation helper.] The routine that averages results across
+    repeats is commented out at its call site and passes two arguments to a
+    three-argument definition.
+  \item[Missing regularisation.] Appendix D.3 describes multinomial logistic
+    regression with L2 regularisation. No weight decay or penalty term appears
+    anywhere in the repository. This matters for the strongly convex
+    convergence result, whose step size bound depends on a strong convexity
+    modulus that is zero without it.
+  \item[Model depth.] Sections 4 and D.3 describe networks with two hidden
+    layers. The implementation has one. Both were measured; the paper's
+    description performs worse on this data by 0.011 to 0.021 macro F1.
+\end{description}

@@ -1,0 +1,118 @@
+\chapter{Requirements, Ethics and Legal Position}
+\label{chap:requirements}
+
+This chapter states what the software had to do, the constraints it operated
+under, and the ethical and legal position of the work.
+
+\section{Functional requirements}
+\label{sec:functional}
+
+\begin{description}
+  \item[F1 Reproduce the base method.] Run PerMFL unmodified on the authors'
+    own dataset and compare against the published figure. Without this, no
+    later result can be attributed to a change rather than to a broken
+    implementation.
+  \item[F2 Load intrusion detection data.] Parse CICIDS2017, NSL-KDD and
+    TON-IoT into the four-tuple interface the existing loaders expose, so that
+    every algorithm in the codebase runs on them without modification.
+  \item[F3 Partition clients under controlled heterogeneity.] Support
+    attack-domain, label-skew, Dirichlet and host-based partitioning, with the
+    degree of skew settable and measurable.
+  \item[F4 Report metrics appropriate to imbalanced detection.] Macro-averaged
+    F1, precision, recall and false positive rate, per class and pooled, in
+    addition to the accuracy the base implementation reports.
+  \item[F5 Support repeated runs.] Vary model initialisation and partitioning
+    by seed so that variation across runs can be measured.
+  \item[F6 Derive teams from client updates.] Form teams during training from
+    the client state rather than at load time, since a data-derived grouping
+    cannot be computed before any client has trained.
+  \item[F7 Evaluate on unseen classes.] Support evaluation of clients on
+    classes absent from their training data.
+\end{description}
+
+\section{Non-functional requirements}
+\label{sec:nonfunctional}
+
+\begin{description}
+  \item[N1 Reproducibility.] A run must be reproducible from a recorded seed
+    and command. Package versions are pinned to the period of the base paper's
+    publication.
+  \item[N2 No information leakage.] No statistic fitted on evaluation data may
+    influence training. Scaling parameters, clipping bounds and imputation
+    values are fitted on the training split only.
+  \item[N3 Commodity hardware.] Experiments must complete on a laptop CPU. No
+    result may depend on access to a GPU cluster.
+  \item[N4 Backward compatibility.] Every modification defaults to the shipped
+    behaviour, so results obtained before a change remain reproducible after
+    it.
+  \item[N5 Traceability.] Each defect identified in the base implementation is
+    recorded with a file and line reference and, where its effect is
+    measurable, a measurement.
+\end{description}
+
+\section{Ethical position}
+\label{sec:ethics}
+
+\subsection{Data}
+
+The project uses three public datasets released for research. CICIDS2017 and
+NSL-KDD were produced by the Canadian Institute for Cybersecurity, TON-IoT by
+UNSW Canberra. All three were captured in purpose-built testbeds using
+synthetic user profiles and scripted attacks. No traffic from a real
+organisation or an identifiable individual is involved, and no attempt is made
+to re-identify any host.
+
+The IP addresses in the captures belong to testbed machines. They appear in the
+raw files and are used in one partitioning scheme to define client boundaries,
+which reflects how a deployed system would be organised. They are removed
+before the feature matrix is constructed, both to prevent the model learning
+addresses instead of behaviour and because address-derived features do not
+transfer outside the testbed.
+
+\subsection{Ethical approval}
+
+The project involves no human participants, no personal data as defined by UK
+GDPR, and no interaction with live systems. Approval was obtained under
+reference \missing{EthOS number}.
+
+\subsection{Dual use}
+
+Intrusion detection research is defensive, but any work that characterises
+where a detector fails also indicates where it could be evaded. The findings
+here concern the internal parameterisation of a federated learning method
+rather than exploitable weaknesses in a deployed system, and the datasets are
+public and well studied. The risk is low. No detection evasion technique is
+developed or evaluated.
+
+\subsection{Reporting}
+
+Results are reported whether or not they support the hypothesis. The evaluation
+in Chapter~\ref{chap:evaluation} includes a configuration in which the proposed
+correction makes matters worse, and a claim from an earlier stage of the work
+that later measurement contradicted. Both are retained.
+
+\section{Legal position}
+\label{sec:legal}
+
+The base implementation is released by its authors under the MIT licence. This
+work is a derivative and carries the same licence with attribution preserved.
+Dataset licences permit academic use with citation, and all three are cited.
+No dataset is redistributed; the repository contains loaders and a download
+procedure.
+
+\section{Scope}
+\label{sec:scope}
+
+Three exclusions are deliberate.
+
+No comparison against SCMoE-PFL or CFMD-i is attempted. Neither publishes an
+implementation, and comparing against a reimplementation would measure the
+reimplementation. This also means no claim is made about relative computational
+efficiency, since establishing one would require running both.
+
+Differential privacy and secure aggregation are out of scope. The threat model
+here is statistical heterogeneity, not an adversarial server.
+
+Attack detection is treated as multi-class classification over labelled
+traffic. Unsupervised anomaly detection, as in Fed-ANIDS, is a different
+problem.

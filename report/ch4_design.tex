@@ -1,0 +1,157 @@
+\chapter{Design}
+\label{chap:design}
+
+This chapter sets out the experimental design: the architecture under test, the
+partitioning schemes, the evaluation protocol, and the reasoning behind each
+choice.
+
+\section{Architecture under test}
+\label{sec:architecture}
+
+PerMFL holds three models, each a complete copy of the network rather than a
+subset of its layers. A device model $\theta_{i,j}$ belongs to device $j$ in
+team $i$, a team model $w_i$ to each of the $M$ teams, and a global model $x$
+to the server. Figure~\ref{fig:tiers} shows the arrangement and the direction
+of each coupling.
+
+The training loop nests three counters. Each global round $t$ runs $K$ team
+rounds, and each team round runs $L$ local gradient steps on every
+participating device. At the start of a global round every team model is
+overwritten with the current global model. At the start of every team round
+every device model is overwritten with its team's model. A device therefore
+travels at most $L$ steps from its team model before being reset, a property
+that Section~\ref{sec:depth} shows to be the dominant influence on personalised
+performance.
+
+Communication cost follows from the loop structure. Each team round broadcasts
+the team model to its devices and collects their updates, so device-to-server
+transfers per global round are $2KN$ for $N$ devices in total. The number of
+teams cancels: five teams of four and one team of twenty cost the same.
+
+\section{Partitioning schemes}
+\label{sec:partitioning}
+
+How clients are constructed determines what any clustering method can recover
+and how much a group-level model can contribute. Four schemes are implemented.
+
+\subsection{Attack domain}
+
+Each attack family is assigned to a group of clients, following CFMD-i's first
+scenario. Benign traffic is distributed uniformly across every client, since a
+detector with no notion of normal traffic has no decision boundary to learn.
+Clients are dealt to domains in rotation and then shuffled, so that client index
+does not encode domain membership. Without the shuffle, a clustering that
+recovered index order would be indistinguishable from one that recovered
+structure.
+
+This scheme is the only one that supplies ground truth. Every client carries a
+known domain label, so a derived partition can be scored against it with the
+adjusted Rand index rather than argued about through downstream accuracy.
+
+\subsection{Label skew}
+
+Each client receives a fixed number $k$ of attack classes, dealt in rotation so
+that neighbouring clients overlap and every class has a similar number of
+holders. Sweeping $k$ produces a heterogeneity ladder, following the approach in
+Stones From Other Hills, which reports a federated baseline, a local baseline
+and its own method at each level.
+
+\subsection{Dirichlet}
+
+The standard approach in the clustered federated learning literature. Class
+proportions per client are drawn from a Dirichlet distribution with
+concentration $\alpha$, lower values producing more skew. It is included for
+comparability, with the caveat noted in Section~\ref{sec:gap}: it produces a
+continuum rather than discrete groups, so it cannot support a ground-truth
+clustering evaluation.
+
+\subsection{Host based}
+
+One client per destination host, which is what a deployed system looks like:
+one agent per machine. Most victim hosts in these captures see a single attack
+type, so hosts are selected by the entropy of their label distribution, an
+approach taken from DP-FL. Without that filter every client would hold one
+class and the partition would be degenerate.
+
+\section{Controlling and measuring heterogeneity}
+\label{sec:hetero-control}
+
+Two independent controls are provided.
+
+The first is the partition itself, through $k$ or $\alpha$. The second is the
+proportion of benign traffic retained per client. At eighty-two per cent benign,
+every client's label distribution is dominated by the same class, which
+compresses any divergence measure regardless of how the attacks are split.
+Thinning benign traffic on the training split makes the underlying structure
+visible without altering the partition. It is applied to training data only:
+the evaluation set must reflect operational traffic, and thinning it would
+inflate macro F1 by shrinking the majority class in the denominator.
+
+Heterogeneity is reported as the mean pairwise Jensen-Shannon divergence
+between client label distributions, which is zero when clients are identical
+and one when they are disjoint, alongside the effective number of classes per
+client.
+
+\section{Evaluation protocol}
+\label{sec:eval-protocol}
+
+\subsection{Metrics}
+
+Accuracy is reported but is not the headline. On a corpus that is eighty-two
+per cent benign, a classifier that never raises an alert scores 0.8171. The
+reason is structural: accuracy uses the true negative cell, which dominates
+under imbalance. For a single attack class in the CICIDS2017 evaluation set, a
+detector that never fires records per-class accuracy between 0.955 and 0.992
+while recording zero recall.
+
+Macro-averaged F1 is the headline metric. It weights every class equally and,
+uniquely among the composite measures considered, does not use the true
+negative cell at all. Recall is reported as the detection rate an operator
+tunes toward, and false positive rate as the alert volume they tune against.
+
+Every result is reported against two anchors: the floor a majority-class
+classifier achieves, and the ceiling the same model and optimiser reach when
+trained centrally on the pooled data.
+
+\subsection{Splits}
+
+Two splits are used. The temporal split orders each client's rows by timestamp
+within each class and takes the earliest seventy-five per cent for training.
+Splitting within class rather than within client is necessary because attacks
+occupy contiguous time windows: a flat split by time assigns the test set
+whichever attack ran last and places the others entirely in training. The random
+split is stratified and serves as the comparison.
+
+Both were measured. The difference between them is 0.0001 macro F1, so the
+random split is used for the main results and the temporal split is reported as
+an ablation.
+
+\subsection{Evaluation on unseen classes}
+
+Under the cross-test protocol, held-out rows are redistributed across all
+clients regardless of what each trained on, so every client is evaluated on
+every class. This follows Stones From Other Hills, where a gateway trained on
+one set of classes is tested on a partly disjoint set to measure adaptation to
+unseen traffic.
+
+The protocol imposes a structural ceiling. A client can only predict classes it
+has trained on, so a class held by $h$ of $N$ clients has pooled recall bounded
+by $h/N$ and F1 bounded by $2(h/N)/(1 + h/N)$ even under perfect
+classification. This bound is computed for every configuration and reported
+alongside the achieved value, because a score of 0.34 against a ceiling of 0.41
+is a different result from 0.34 against a ceiling of 1.0.
+
+\section{Experimental design}
+\label{sec:experimental-design}
+
+Comparisons are paired: both configurations under test see the same partition
+and the same initialisation for a given seed, so the difference isolates the
+change. Five seeds are used for headline comparisons and three for exploratory
+sweeps, with a paired $t$ test. Three seeds is treated as indicative only; at
+$n=3$ the critical value is 4.303 and the statistic is dominated by seed
+variance.
+
+Results that fall below a difference of 0.03 macro F1 are treated as noise. That
+threshold comes from measurement: two runs of an identical configuration
+differed by 0.0116, so anything smaller cannot be distinguished from run-to-run
+variation.

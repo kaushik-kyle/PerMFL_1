@@ -1,0 +1,134 @@
+\chapter{Introduction}
+\label{chap:intro}
+
+This chapter states the problem, identifies the gap in existing work that
+motivates the project, sets out the aims and objectives against which the work
+is assessed, and describes the structure of the remainder of the report.
+
+\section{Background}
+\label{sec:background}
+
+Network intrusion detection systems classify traffic as benign or as belonging
+to a class of attack. How well they work depends on the breadth of attack
+traffic they have been trained on, which creates a difficulty: an organisation
+would benefit from learning from attacks other organisations have seen, but
+network traffic is among the most sensitive data it holds. Flow records reveal
+internal addressing, service topology, user behaviour, and the fact of a
+compromise when one has occurred.
+
+Federated learning \parencite{mcmahan-2017} offers a way around this. Each
+participant trains on its own records and transmits only model updates, which a
+server averages into a shared model. No raw traffic leaves the participant.
+
+The difficulty is that averaging works well when participants hold similar
+data and poorly when they do not. An organisation running web services sees
+different attacks from one running industrial control systems. Under this kind
+of statistical heterogeneity a single averaged model fits nobody well, an
+effect documented across the federated learning literature and particularly
+sharp in intrusion detection, where attack classes are rare, unevenly
+distributed, and specific to the environment that produced them.
+
+Personalised federated learning addresses this by giving each participant a
+model of its own while still sharing what can be shared. Multi-tier variants go
+further and introduce an intermediate level between the device and the server,
+on the argument that participants fall into groups and that a group-level model
+captures what its members have in common without forcing agreement across
+groups that have little to share.
+
+\section{The base method}
+\label{sec:base-method}
+
+This project takes PerMFL \parencite{permfl-2024} as its base. PerMFL is a
+three-tier personalised federated learning method with a device model, a team
+model, and a global model, coupled by squared Euclidean penalties. It provides
+convergence guarantees, linear for smooth strongly convex problems and
+sub-linear for smooth non-convex ones, and its authors published an
+implementation together with seven baseline algorithms.
+
+Three properties made it the right base. It is reproducible, which most of the
+adjacent literature is not. It carries a convergence proof, which the clustered
+federated learning methods it competes with do not. And its stated premise, that
+it applies ``when there are known team structures across devices'', maps onto
+intrusion detection, where attack families and network segments provide exactly
+that kind of structure.
+
+\section{Problem statement}
+\label{sec:problem}
+
+PerMFL has been evaluated only on image benchmarks and a synthetic tabular
+dataset. Intrusion detection data differs from those in ways that bear directly
+on the method's assumptions. Classes are severely imbalanced, with benign
+traffic accounting for over eighty per cent of the CICIDS2017 capture. Several
+attack classes have double-digit sample counts against millions of benign
+flows. Traffic arrives in time order and attacks occur in contiguous bursts, so
+the split between training and evaluation data is a methodological decision
+rather than a formality. None of these conditions is present in MNIST.
+
+The project asks whether the method transfers, what has to change for it to
+transfer, and whether the architectural claim that motivates it holds on this
+kind of data.
+
+\section{Aims and objectives}
+\label{sec:aims}
+
+The aim is to establish whether PerMFL is suitable for network intrusion
+detection and, where it is not, to identify why and what corrects it.
+
+\begin{enumerate}
+  \item Reproduce the published result on the authors' own dataset, to
+        establish that the implementation under test behaves as the paper
+        describes.
+  \item Build a leakage-free data pipeline for CICIDS2017, NSL-KDD and
+        TON-IoT, with a documented partitioning scheme and an evaluation
+        protocol appropriate to imbalanced multi-class detection.
+  \item Measure the method under controlled variation of client heterogeneity,
+        reporting each result against the floor a trivial classifier achieves
+        and the ceiling the same model reaches without federation.
+  \item Test the architectural premise directly by varying the team structure
+        the method is built around.
+  \item Where the method underperforms, identify the mechanism and evaluate a
+        correction.
+\end{enumerate}
+
+\section{Contributions}
+\label{sec:contributions}
+
+The work makes four contributions.
+
+An exact reproduction of the published EMNIST-10 result, matching the reported
+personalised accuracy to within 0.04 percentage points, together with sixteen
+documented defects in the released implementation. One of these, an argument
+binding error, silently overrides a tunable hyperparameter with an unrelated
+loop count.
+
+Evidence that the team tier, the architectural feature that distinguishes
+PerMFL from two-tier methods, contributes almost nothing within the parameter
+region its own convergence conditions permit. Removing the tier entirely
+changes personalised macro F1 by 0.0002 on CICIDS2017 and by 0.0000 on the
+authors' own EMNIST-10 setup.
+
+An explanation of why, derived from the update rule rather than inferred from
+results. A single parameter governs both the device-to-team penalty and the
+weight the team model places on its members, and the values these two roles
+require are opposed.
+
+A correction that separates them, evaluated across three datasets and four
+partitioning schemes with five paired random seeds. It improves the global
+model on three of four partitions and reduces its variance across seeds by two
+to three orders of magnitude in all four, with one regression that is reported
+rather than omitted.
+
+\section{Report structure}
+\label{sec:structure}
+
+Chapter~\ref{chap:litreview} reviews personalised and clustered federated
+learning, federated intrusion detection, and the data quality problems specific
+to CICIDS2017. Chapter~\ref{chap:requirements} states the functional and
+non-functional requirements and the ethical and legal position.
+Chapter~\ref{chap:design} describes the experimental design, the partitioning
+schemes and the evaluation protocol. Chapter~\ref{chap:implementation} covers
+the data pipeline, the metric instrumentation and the modifications to the base
+implementation. Chapter~\ref{chap:testing} sets out how the pipeline was
+verified. Chapter~\ref{chap:evaluation} presents the results and evaluates them
+critically. Chapter~\ref{chap:conclusion} concludes and identifies further
+work.

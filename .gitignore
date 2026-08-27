@@ -8,3 +8,10 @@ models/
 .handoff/
 run.md
 RUNS.md
+report/*.pdf
+report/*.aux
+report/*.log
+report/*.bbl
+report/*.blg
+report/*.out
+report/*.toc
