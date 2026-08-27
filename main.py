@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import numpy as np
 from FLAlgorithms.servers.serveravg import FedAvg
 from FLAlgorithms.servers.serverPerMFL import PerMFL
 from FLAlgorithms.servers.serverperavg import PerAvg
@@ -12,7 +13,19 @@ from FLAlgorithms.servers.serverpFedbayes import pFedBayes
 from FLAlgorithms.servers.server_hqsgd import QSGD_server
 #from utils.result_utils import average_result
 import os
-torch.manual_seed(0)
+
+def _seed_everything(seed):
+    """Parameterises the seed that was hardcoded to 0.
+
+    Without this --times N produces N identical runs: torch.manual_seed(0) was
+    fixed here, the loaders fix their own seeds, and select_users seeds on the
+    round index, so under --group_division 0 nothing varies between repeats.
+    That is consistent with the (+/-0.0) standard deviations reported
+    throughout Table 1 of arXiv:2407.14251.
+    """
+    import random as _r
+    torch.manual_seed(seed); np.random.seed(seed); _r.seed(seed)
+    os.environ["PERMFL_SEED"] = str(seed)
 
 
 def main(cluster_cfg, lamda_team, weighted_agg, dataset, algorithm, model_name, batch_size, beta, lamda, gamma, eta, alpha,
@@ -359,6 +372,8 @@ if __name__ == "__main__":
                         help="What kind of analysis do you want (beta, gamma, lambda, eta, team_iters, team_number, poor_cluster)")
     
     parser.add_argument("--group_division", type = int, default=1, help=" 0 : sequential division , 1 : random division , 2 : only one group, 3 : derived from client updates")
+    parser.add_argument("--seed", type=int, default=0,
+                        help="seeds torch, numpy and python random; also seeds the CICIDS partition")
     parser.add_argument("--lamda_team", type=float, default=None,
                         help="weight the team update places on its members average; defaults to --lamda")
     parser.add_argument("--weighted_agg", type=int, default=0,
@@ -377,6 +392,7 @@ if __name__ == "__main__":
     parser.add_argument("--zeta", type=int, default=10)
 
     args = parser.parse_args()
+    _seed_everything(args.seed)
 
     print("=" * 90)
     print("Summary of training process:")

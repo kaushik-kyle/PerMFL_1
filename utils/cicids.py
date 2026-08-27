@@ -63,6 +63,21 @@ CLASSES_PER_CLIENT = int(os.environ.get("CICIDS_CLASSES_PER_CLIENT", "3"))
 # explicitly to measure adaptation to unseen / zero-day traffic. Local training
 # cannot succeed here by construction; federation can.
 CROSS_TEST = int(os.environ.get("CICIDS_CROSS_TEST", "0"))
+# Graded domain structure, after SCMoE's pfl/data/domain_partitioner.py.
+# Pure domain partitioning is the alpha->0 case: zero overlap between groups.
+# Dirichlet gives graded skew but, as that module's docstring argues, produces
+# a continuum rather than discrete groups, so no clustering can recover
+# anything and a null measures the partition rather than the algorithm.
+# Mixing keeps recoverable groups AND grades the skew:
+#     dist = MIX * domain_dist + (1 - MIX) * uniform
+# MIX=1 pure domains, MIX=0 IID.
+DOMAIN_MIX = float(os.environ.get("CICIDS_DOMAIN_MIX", "1.0"))
+# Keep this fraction of each client's BENIGN rows, all attack rows. Thinned
+# per client, never globally, so no client is left benign-free -- a detector
+# with no notion of normal has no decision boundary. At 82% BENIGN the
+# majority class otherwise dominates gradient cosine similarity and
+# degenerates clustering.
+BENIGN_FRACTION = float(os.environ.get("CICIDS_BENIGN_FRACTION", "1.0"))
 
 DAY_FILES = {
     "Monday":    ["Monday-WorkingHours"],
@@ -151,7 +166,7 @@ def _load_all(verbose):
 
 def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=True):
     global CLASS_NAMES
-    rng = np.random.RandomState(0)
+    rng = np.random.RandomState(int(os.environ.get("PERMFL_SEED", "0")))
     lab, X, day, t, feat = _load_all(verbose)
 
     vc = pd.Series(lab).value_counts()
@@ -192,6 +207,32 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
                 else:
                     take = members
                 owner[rc] = np.array(take)[np.arange(len(rc)) % len(take)]
+    elif PARTITION == "domainmix":
+        # (C, N) distribution matrix, same shape the dirichlet path produces
+        per_dom = NUM_USERS // len(DOMAIN_ORDER)
+        cd = [d for d in range(len(DOMAIN_ORDER)) for _ in range(per_dom)]
+        while len(cd) < NUM_USERS:
+            cd.append(len(DOMAIN_ORDER) - 1)
+        cd = np.array(cd); rng.shuffle(cd)   # client index must not encode domain
+        client_domain = cd.tolist()
+        dist = np.zeros((C, NUM_USERS))
+        for c in range(C):
+            rows = np.where(y == c)[0]
+            if len(rows) == 0:
+                continue
+            dom = int(np.bincount(day[rows], minlength=len(DOMAIN_ORDER)).argmax())
+            holders = np.flatnonzero(cd == dom)
+            hard = np.zeros(NUM_USERS)
+            if c == 0 or holders.size == 0:
+                hard[:] = 1.0 / NUM_USERS          # BENIGN spread over everyone
+            else:
+                hard[holders] = 1.0 / holders.size
+            dist[c] = DOMAIN_MIX * hard + (1 - DOMAIN_MIX) / NUM_USERS
+            dist[c] /= dist[c].sum()
+            cut = (np.cumsum(dist[c])[:-1] * len(rows)).astype(int)
+            for u, part in enumerate(np.split(rows, cut)):
+                owner[part] = u
+
     elif PARTITION == "labelskew":
         client_domain = [-1] * NUM_USERS
         attacks = [c for c in range(C) if c != 0]
@@ -223,7 +264,7 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             for u, part in enumerate(np.split(rc, cut)):
                 owner[part] = u
     else:
-        raise ValueError(f"CICIDS_PARTITION must be domain, labelskew or dirichlet, got {PARTITION!r}")
+        raise ValueError(f"CICIDS_PARTITION must be domain, domainmix, labelskew or dirichlet, got {PARTITION!r}")
     # A low dirichlet alpha can leave a client with no rows at all, and
     # DataLoader rejects batch_size=0. Give any empty client a small stratified
     # slice taken from the largest holder of each class.
@@ -234,6 +275,14 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             pool = np.where((y == c) & (owner != u))[0]
             if len(pool) > MIN_CLIENT_ROWS:
                 owner[rng.choice(pool, MIN_CLIENT_ROWS // C + 1, replace=False)] = u
+
+    if BENIGN_FRACTION < 1.0:
+        for u in range(NUM_USERS):
+            idx = np.where(owner == u)[0]
+            ben = idx[y[idx] == 0]
+            keep = max(int(round(len(ben) * BENIGN_FRACTION)), min(len(ben), 50))
+            if len(ben) > keep:
+                owner[rng.choice(ben, len(ben) - keep, replace=False)] = -1
 
     # ---------------- per-client cap, rare classes protected ----------------
     sel = []
