@@ -14,6 +14,7 @@ from FLAlgorithms.servers.server_hqsgd import QSGD_server
 #from utils.result_utils import average_result
 import os
 TONIOT_FEATS = int(os.environ.get('TONIOT_FEATS', '38'))
+HIDDEN_LAYERS = int(os.environ.get('HIDDEN_LAYERS', '1'))
 
 def _seed_everything(seed):
     """Parameterises the seed that was hardcoded to 0.
@@ -74,11 +75,11 @@ def main(cluster_cfg, lamda_team, weighted_agg, dataset, algorithm, model_name, 
 
         if model_name == "dnn":
             if dataset == "Toniot":
-                model = DNN(TONIOT_FEATS, 100, 10).to(device)
+                model = DNN(TONIOT_FEATS, 100, 10, HIDDEN_LAYERS).to(device)
             elif dataset == "Nslkdd":
-                model = DNN(122, 100, 5).to(device)
+                model = DNN(122, 100, 5, HIDDEN_LAYERS).to(device)
             elif dataset == "Cicids":
-                model = DNN(79, 100, 9).to(device)
+                model = DNN(79, 100, 9, HIDDEN_LAYERS).to(device)
             elif dataset == "Mnist":
                 model = DNN().to(device)
             elif dataset == "Synthetic":

@@ -43,3 +43,31 @@ def macro_f1(cm):
 
 def per_class_support(cm):
     return np.asarray(cm).sum(axis=1).astype(np.int64)
+
+
+def full_report(cm):
+    """Per-class precision, recall, F1 and false-positive rate from a
+    confusion matrix indexed [true, predicted].
+
+    Recall is the detection rate an IDS operator tunes to; FPR is the
+    alert-fatigue constraint they tune against. Both come free from the
+    confusion matrix macro_f1 already builds. Neither uses the TN cell for
+    recall, which is why recall and F1 stay honest under class imbalance
+    while accuracy does not: on our CICIDS split a detector that fires on
+    nothing scores 0.955 to 0.992 per-class accuracy and 0.00 recall.
+    """
+    cm = np.asarray(cm, dtype=np.float64)
+    C = len(cm); tot = cm.sum()
+    prec = np.zeros(C); rec = np.zeros(C); f1 = np.zeros(C); fpr = np.zeros(C)
+    for c in range(C):
+        tp = cm[c, c]
+        fp = cm[:, c].sum() - tp
+        fn = cm[c, :].sum() - tp
+        tn = tot - tp - fp - fn
+        prec[c] = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        rec[c] = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        f1[c] = 2 * prec[c] * rec[c] / (prec[c] + rec[c]) if (prec[c] + rec[c]) > 0 else 0.0
+        fpr[c] = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+    return dict(macro_precision=float(prec.mean()), macro_recall=float(rec.mean()),
+                macro_f1=float(f1.mean()), macro_fpr=float(fpr.mean()),
+                per_class_recall=rec, per_class_f1=f1, per_class_fpr=fpr)

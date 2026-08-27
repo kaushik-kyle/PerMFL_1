@@ -83,16 +83,23 @@ class cnn_fmnist(nn.Module):
 
 
 class DNN(nn.Module):
-    def __init__(self, input_dim = 784, mid_dim = 100, output_dim = 10):
+    """Section 4 and D.3 of arXiv:2407.14251 describe "deep neural networks
+    with two hidden layers". The released model has one. hidden_layers=2
+    matches the paper's own text; the default of 1 preserves the shipped
+    behaviour so existing results stay reproducible."""
+    def __init__(self, input_dim = 784, mid_dim = 100, output_dim = 10, hidden_layers = 1):
         super(DNN, self).__init__()
-        # define network layers
         self.fc1 = nn.Linear(input_dim, mid_dim)
+        self.hidden_layers = hidden_layers
+        if hidden_layers >= 2:
+            self.fc_mid = nn.Linear(mid_dim, mid_dim)
         self.fc2 = nn.Linear(mid_dim, output_dim)
-        
+
     def forward(self, x):
-        # define forward pass
         x = torch.flatten(x, 1)
         x = F.relu(self.fc1(x))
+        if self.hidden_layers >= 2:
+            x = F.relu(self.fc_mid(x))
         x = self.fc2(x)
         x = F.log_softmax(x, dim=1)
         return x

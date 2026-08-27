@@ -72,6 +72,8 @@ class PerMFL():
 
         self.global_f1 = []
         self.per_f1 = []
+        self.global_recall = []; self.per_recall = []
+        self.global_fpr = []; self.per_fpr = []
         self.global_train_acc = []
         self.global_test_acc = [] 
         self.global_train_loss = []
@@ -489,6 +491,10 @@ class PerMFL():
             hf.create_dataset('global_test_loss', data=self.global_test_loss)
             hf.create_dataset('global_macro_f1', data=self.global_f1)
             hf.create_dataset('per_macro_f1', data=self.per_f1)
+            hf.create_dataset('global_macro_recall', data=self.global_recall)
+            hf.create_dataset('per_macro_recall', data=self.per_recall)
+            hf.create_dataset('global_macro_fpr', data=self.global_fpr)
+            hf.create_dataset('per_macro_fpr', data=self.per_fpr)
 
             # hf.create_dataset('team_train_accuracy', data=self.global_train_acc)
             # hf.create_dataset('team_train_loss', data=self.global_train_loss)
@@ -715,10 +721,16 @@ class PerMFL():
 
         
         
-        gf1, pf1, _, _ = self._pooled_f1()
+        gf1, pf1, cmg, cmp_ = self._pooled_f1()
         self.global_f1.append(gf1)
         self.per_f1.append(pf1)
+        from FLAlgorithms.metrics import full_report
+        rg, rp = full_report(cmg), full_report(cmp_)
+        self.global_recall.append(rg["macro_recall"]); self.per_recall.append(rp["macro_recall"])
+        self.global_fpr.append(rg["macro_fpr"]); self.per_fpr.append(rp["macro_fpr"])
         print("Global macro F1: %.4f   Personal macro F1: %.4f" % (gf1, pf1))
+        print("Global macro recall: %.4f  FPR: %.4f   Personal macro recall: %.4f  FPR: %.4f"
+              % (rg["macro_recall"], rg["macro_fpr"], rp["macro_recall"], rp["macro_fpr"]))
         print("Global Trainning Accurancy: ", train_acc)
         print("Global Trainning Loss: ", train_loss)
         print("Global test accurancy: ", test_acc)

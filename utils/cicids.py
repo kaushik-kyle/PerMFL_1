@@ -63,6 +63,13 @@ CLASSES_PER_CLIENT = int(os.environ.get("CICIDS_CLASSES_PER_CLIENT", "3"))
 # explicitly to measure adaptation to unseen / zero-day traffic. Local training
 # cannot succeed here by construction; federation can.
 CROSS_TEST = int(os.environ.get("CICIDS_CROSS_TEST", "0"))
+# Percentile clipping, standard in published CICIDS2017 preprocessing and the
+# one leakage-free step our pipeline was missing. Measured on the cleaned
+# matrix: 58 of 79 features have max/median > 1e4 and 43 exceed 1e6, three at
+# int64 max. Standardising against outliers of that scale compresses the
+# useful range of nearly every feature toward zero. Bounds are fitted on TRAIN
+# ONLY, so no test statistic crosses the split.
+CLIP_PCT = float(os.environ.get("CICIDS_CLIP_PCT", "0"))
 # Graded domain structure, after SCMoE's pfl/data/domain_partitioner.py.
 # Pure domain partitioning is the alpha->0 case: zero overlap between groups.
 # Dirichlet gives graded skew but, as that module's docstring argues, produces
@@ -346,6 +353,13 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
         tr_all = [tr for tr, _ in sel]
 
     pooled = X[np.concatenate(tr_all)]
+    if CLIP_PCT > 0:
+        lo = np.percentile(pooled, 100 - CLIP_PCT, axis=0)
+        hi = np.percentile(pooled, CLIP_PCT, axis=0)
+        X = np.clip(X, np.minimum(lo, hi), np.maximum(lo, hi))
+        pooled = X[np.concatenate(tr_all)]
+        if verbose:
+            print(f"  clipped features to [{100-CLIP_PCT:.1f}, {CLIP_PCT:.1f}] train percentiles")
     mu, sd = pooled.mean(0), pooled.std(0); sd[sd == 0] = 1.0
 
     for u, (tr, te) in enumerate(sel):
