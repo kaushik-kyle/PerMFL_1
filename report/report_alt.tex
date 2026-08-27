@@ -1,0 +1,33 @@
+% Alternate eight-chapter structure, standalone.
+% Compiles on its own so sections can be relocated into the main report
+% wherever the supervisor directs.
+\documentclass[12pt,MSc]{mmuthesis}
+\input{command}
+\input{highlight}
+\hyphenation{op-tical net-works semi-conduc-tor fed-er-ated per-son-al-ised
+             clus-ter-ing het-ero-gen-eity}
+\bibliography{refs}
+\begin{document}
+\copyrightfalse
+\title{Personalised Multi-tier Federated Learning for Network Intrusion
+Detection: A Reproduction, Analysis and Correction}
+\author{Kaushik Karthigeyan Senthilathiban}
+\principaladviser{\missing{supervisor name}}
+\submitdate{September 2026}
+\def\degreetitle{\missing{Master of Science in Cyber Security}}
+\ethicsnumber{\missing{EthOS number}}
+\beforeabstract
+\prefacesection{Abstract}
+\input{abstract_alt}
+\afterabstract
+\body
+\input{ch1_intro}
+\input{ch2_litreview}
+\input{ch3_requirements}
+\input{ch4_design}
+\input{ch5_implementation}
+\input{ch6_testing}
+\input{ch7_evaluation}
+\input{ch8_conclusion}
+\printbibliography
+\end{document}

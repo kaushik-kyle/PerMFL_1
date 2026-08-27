@@ -1,0 +1,145 @@
+\chapter{Conclusion and Further Work}
+\label{chap:conclusion}
+
+\section{Summary}
+\label{sec:summary}
+
+The project asked whether PerMFL transfers to network intrusion detection, what
+has to change for it to transfer, and whether the architectural claim that
+motivates it holds on this kind of data.
+
+It transfers, but not as published. The released implementation reproduces its
+own headline figure to within 0.04 percentage points, and it does so while
+carrying a defect that silently overrides a documented hyperparameter with an
+unrelated loop count. That the published number is reached anyway is evidence
+the defect was present when the results were produced.
+
+The architectural claim does not hold in the region the method's own theory
+permits. Removing the team tier entirely changes personalised macro F1 by
+0.0002 on CICIDS2017 and by 0.0000 on the base paper's own EMNIST-10 setup,
+against a measured noise floor of 0.0116. Assigning teams to match true attack
+domains does not beat assigning them at random, and neither beats teams derived
+from client updates during training.
+
+The reason is arithmetic rather than empirical. A single parameter governs both
+the device-to-team penalty and the weight the team model places on its members,
+and those two roles want opposed values. At the setting that personalises well,
+membership influences the team model by 3.3 per cent, so the team model is
+effectively a copy of the global one. The method's own convergence condition
+caps that influence below fifty per cent in any case.
+
+Separating the two roles improves both models. Across three datasets and nine
+heterogeneity settings the correction raises personalised macro F1 by 0.027 to
+0.326 and global macro F1 by 0.113 to 0.705, significant at every point. It also
+reduces across-seed variance in global accuracy by two to three orders of
+magnitude, which holds even in the one configuration where the mean regressed.
+
+One result runs against the project's expectations and is reported as such. The
+benefit grows as clients become more similar, not less. The term the weight
+controls is an average of team members, and an average of divergent members
+carries little signal, so the correction mostly frees the model to use
+information it already had.
+
+\section{Against the objectives}
+\label{sec:objectives-met}
+
+The reproduction was achieved and the pipeline built for three datasets with
+four partitioning schemes and a documented evaluation protocol. Heterogeneity
+was swept from near-homogeneous to strongly skewed with every result anchored
+against a floor and, where the protocol imposes one, a structural ceiling. The
+architectural premise was tested directly, the mechanism behind the negative
+result identified from the update rule, and a correction evaluated with paired
+seeds and significance testing.
+
+One objective is only partly met. The base implementation ships seven baseline
+algorithms and the intention was to run them on the intrusion detection data.
+Only the method under test carries the metric instrumentation this study
+requires, and extending it to the others was not completed. The results
+therefore position PerMFL against its own configurations and against a local
+training baseline, not against the wider federated literature.
+
+\section{Limitations}
+\label{sec:limitations}
+
+The absent baseline comparison is the principal limitation. A reader cannot tell
+from this work whether the corrected method is competitive with FedAvg, pFedMe
+or Ditto on the same data.
+
+No comparison is made against the two most closely related methods, SCMoE-PFL
+and CFMD-i, because neither publishes an implementation. This also means no
+claim is made about relative computational cost, despite the substantial
+practical difference in what the architectures hold: one model per tier against
+per-cluster experts, a private model and a gating network per client.
+
+Several exploratory results rest on single runs, and are labelled as such.
+
+The heterogeneity measure captures divergence between label distributions only.
+A partition with identical label distributions but different decision boundaries
+would register as homogeneous.
+
+Two of the three datasets are laboratory captures with scripted attacks, so
+agreement between them is weaker evidence than agreement between independent
+operational sources.
+
+\section{Further work}
+\label{sec:further-work}
+
+\subsection{Completing the comparison}
+
+Instrumenting the shipped baselines with the same metrics and running them on
+the same partitions would place the corrected method in context. This is the
+most valuable remaining work and it needs no new ideas, only the same
+instrumentation applied to four more server classes.
+
+\subsection{Tuning the decoupled weight}
+
+The team weight's optimum is dataset dependent: 1.5 on CICIDS2017 against 3.0
+on NSL-KDD. A principled rule relating it to the heterogeneity measure, rather
+than a per-dataset sweep, would make the correction usable without tuning.
+
+\subsection{Output-space clustering}
+
+The derived team formation uses a parameter-space signal. CFMD-i additionally
+uses an output-space divergence and switches between the two adaptively. Under
+label skew two clients can hold near-identical weights and behave differently,
+which the parameter-space signal misses. Whether the better signal changes the
+conclusion is uncertain given that the term it feeds is weighted at 3.3 per
+cent, but the argument is currently an argument rather than a measurement.
+
+\subsection{Nested structure}
+
+Every partition used here supplies structure at one level, so two of the three
+tiers are redundant by construction. A nested partition, in which teams differ
+by attack family and clients within a team differ by variant, would give each
+tier something distinct to represent. It is the fairest available test of the
+three-tier premise and no published work has run it.
+
+\subsection{Quantity skew}
+
+The per-client cap flattens client sizes into a narrow band. Real deployments
+are unequal, and the base paper's own synthetic generator spans two orders of
+magnitude. Removing the cap restores an axis of realism that this study
+suppressed.
+
+\subsection{Memory behaviour of the loader interface}
+
+The loader interface materialises every client's features as Python lists,
+roughly a gigabyte per process on CICIDS2017 before any training begins. This
+constrains how many configurations can run concurrently and caused a
+machine-level failure during this project. A tensor-backed interface would
+remove the constraint, at the cost of changing a contract every loader in the
+base implementation shares.
+
+\section{Closing}
+\label{sec:closing}
+
+The most useful thing this project produces is not the correction. It is the
+observation that a published method's central architectural claim can be tested
+directly, cheaply, and negatively, and that the reason can be read off the
+update rule once someone looks. The team tier contributes 0.0002 macro F1 in the
+configuration its authors recommend, and the arithmetic explaining why fits in a
+paragraph.
+
+That the same analysis then yields a correction improving both models across
+three datasets is a secondary result, though the more useful one to anyone
+intending to deploy the method.

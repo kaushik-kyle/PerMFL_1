@@ -1,0 +1,28 @@
+Federated learning lets organisations train a shared intrusion detection model
+without exchanging traffic records, but averaging works poorly when
+participants hold dissimilar data. Multi-tier personalised methods address this
+by placing a group-level model between the device and the server. This work
+evaluates one such method, PerMFL, on network intrusion detection data, a
+domain it has not been applied to.
+
+The published EMNIST-10 result is reproduced to within 0.04 percentage points.
+Sixteen defects are documented in the released implementation, including an
+argument binding error that silently overrides a documented hyperparameter with
+an unrelated loop count, and a fixed random seed that causes repeated runs to
+return identical results.
+
+The method's central architectural feature, the team tier, is then tested
+directly. Removing it entirely changes personalised macro F1 by 0.0002 on
+CICIDS2017 and by 0.0000 on the base paper's own dataset, against a measured
+noise floor of 0.0116. Teams matching true attack domains do not outperform
+teams assigned at random. The reason is derived from the update rule: a single
+parameter governs both the device-to-team penalty and the weight the team model
+places on its members, and at the setting that personalises well, membership
+influences the team model by 3.3 per cent. The method's own convergence
+condition caps that influence below fifty per cent.
+
+Separating the two roles improves both the personalised and the global model at
+every heterogeneity level measured across CICIDS2017, NSL-KDD and TON-IoT,
+raising personalised macro F1 by 0.027 to 0.326 and global macro F1 by 0.113 to
+0.705, and reducing across-seed variance in global accuracy by two to three
+orders of magnitude. One configuration regresses and is reported.

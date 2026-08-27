@@ -1,0 +1,32 @@
+% Draft-only highlighting. DELETE THIS INPUT BEFORE FINAL SUBMISSION and the
+% two commands will need removing from the chapter files with a find/replace.
+%
+%   \missing{...} RED    - a placeholder: a fact only you have, a section that
+%                          needs writing, or a citation that must be verified.
+%                          Bold red text on a pale red ground, prefixed
+%                          [PLACEHOLDER], so it cannot be skimmed past.
+%   \unsure{...}  YELLOW - not a placeholder: text that IS written, but whose
+%                          wording or framing you should check before it
+%                          stands. Kept a different colour deliberately, so
+%                          the two are not confused when triaging.
+%
+% soul's \hl is used rather than \colorbox because it breaks across lines.
+% Do NOT put citations, maths or footnotes inside either command; soul cannot
+% handle them and the compile will fail with an unhelpful error.
+\usepackage{soul}
+\usepackage{xcolor}
+
+\definecolor{unsureyellow}{RGB}{255,242,140}
+\definecolor{missingbg}{RGB}{255,214,214}
+\definecolor{missingfg}{RGB}{176,0,0}
+
+% \color is set BEFORE \hl: soul applies the prevailing colour across the
+% whole highlighted run, whereas a \textcolor inside the argument breaks it.
+\newcommand{\missing}[1]{{%
+  \sethlcolor{missingbg}%
+  \color{missingfg}%
+  \bfseries
+  \hl{[PLACEHOLDER] #1}%
+}}
+
+\newcommand{\unsure}[1]{{\sethlcolor{unsureyellow}\hl{#1}}}
