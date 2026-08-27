@@ -276,14 +276,6 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
             if len(pool) > MIN_CLIENT_ROWS:
                 owner[rng.choice(pool, MIN_CLIENT_ROWS // C + 1, replace=False)] = u
 
-    if BENIGN_FRACTION < 1.0:
-        for u in range(NUM_USERS):
-            idx = np.where(owner == u)[0]
-            ben = idx[y[idx] == 0]
-            keep = max(int(round(len(ben) * BENIGN_FRACTION)), min(len(ben), 50))
-            if len(ben) > keep:
-                owner[rng.choice(ben, len(ben) - keep, replace=False)] = -1
-
     # ---------------- per-client cap, rare classes protected ----------------
     sel = []
     for u in range(NUM_USERS):
@@ -337,6 +329,21 @@ def read_cicids_data(NUM_USERS, NUM_LABELS, NUM_GROUPS, group_division, verbose=
                 newte[u].append(rows[u::NUM_USERS])
         sel = [(tr, np.sort(np.concatenate(newte[u])) if newte[u] else np.array([], np.int64))
                for u, (tr, _) in enumerate(sel)]
+
+    if BENIGN_FRACTION < 1.0:
+        # TRAIN ONLY. SCMoE thins after the split (tabular_federated_data.py
+        # 502-518) and leaves test untouched, which is correct: the test set
+        # must reflect real traffic at its natural ~82% BENIGN because that is
+        # the deployment condition. Thinning test would inflate macro F1 by
+        # shrinking the majority class in evaluation.
+        newsel = []
+        for u, (tr, te) in enumerate(sel):
+            ben = tr[y[tr] == 0]
+            keep = max(int(round(len(ben) * BENIGN_FRACTION)), min(len(ben), 50))
+            drop = rng.choice(ben, len(ben) - keep, replace=False) if len(ben) > keep else np.array([], np.int64)
+            newsel.append((np.setdiff1d(tr, drop, assume_unique=False), te))
+        sel = newsel
+        tr_all = [tr for tr, _ in sel]
 
     pooled = X[np.concatenate(tr_all)]
     mu, sd = pooled.mean(0), pooled.std(0); sd[sd == 0] = 1.0
