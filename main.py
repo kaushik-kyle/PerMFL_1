@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import numpy as np
+TONIOT_FEATS = int(os.environ.get('TONIOT_FEATS', '38'))
 from FLAlgorithms.servers.serveravg import FedAvg
 from FLAlgorithms.servers.serverPerMFL import PerMFL
 from FLAlgorithms.servers.serverperavg import PerAvg
@@ -51,6 +52,8 @@ def main(cluster_cfg, lamda_team, weighted_agg, dataset, algorithm, model_name, 
                 model = Mclr_Logistic(input_dim=79, output_dim=9).to(device)
             elif dataset == "Nslkdd":
                 model = Mclr_Logistic(input_dim=122, output_dim=5).to(device)
+            elif dataset == "Toniot":
+                model = Mclr_Logistic(input_dim=TONIOT_FEATS, output_dim=10).to(device)
             elif dataset == "Cifar100":
                 model = Mclr_Logistic(input_dim=3072, output_dim=100).to(device)
             else:
@@ -70,7 +73,9 @@ def main(cluster_cfg, lamda_team, weighted_agg, dataset, algorithm, model_name, 
                 model = CNNCifar100().to(device)
 
         if model_name == "dnn":
-            if dataset == "Nslkdd":
+            if dataset == "Toniot":
+                model = DNN(TONIOT_FEATS, 100, 10).to(device)
+            elif dataset == "Nslkdd":
                 model = DNN(122, 100, 5).to(device)
             elif dataset == "Cicids":
                 model = DNN(79, 100, 9).to(device)
@@ -308,6 +313,7 @@ if __name__ == "__main__":
                                                                         "Emnist10",
                                                                         "Cicids",
                                                                         "Nslkdd",
+                                                                        "Toniot",
                                                                         "Cifar100",
                                                                         "Movielens"])
     parser.add_argument("--model_name", type=str, default="dnn", choices=["dnn",

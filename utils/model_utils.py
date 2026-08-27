@@ -1332,6 +1332,13 @@ def read_data(dataset, num_users, num_labels, num_groups, group_division):
         print("groups", groups)
         # return clients, groups, train_data, test_data
     
+    elif dataset == "Toniot":
+        print("reading from TON-IoT Network")
+        from utils.toniot import read_toniot_data
+        clients, groups, train_data, test_data = read_toniot_data(num_users, num_labels, num_groups, group_division)
+        print("clients", clients)
+        print("groups", groups)
+
     elif dataset == "Nslkdd":
         print("reading from NSL-KDD (4 attack domains, canonical split)")
         from utils.nslkdd import read_nslkdd_data
