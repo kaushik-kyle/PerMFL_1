@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import argparse
 import numpy as np
-TONIOT_FEATS = int(os.environ.get('TONIOT_FEATS', '38'))
 from FLAlgorithms.servers.serveravg import FedAvg
 from FLAlgorithms.servers.serverPerMFL import PerMFL
 from FLAlgorithms.servers.serverperavg import PerAvg
@@ -14,6 +13,7 @@ from FLAlgorithms.servers.serverpFedbayes import pFedBayes
 from FLAlgorithms.servers.server_hqsgd import QSGD_server
 #from utils.result_utils import average_result
 import os
+TONIOT_FEATS = int(os.environ.get('TONIOT_FEATS', '38'))
 
 def _seed_everything(seed):
     """Parameterises the seed that was hardcoded to 0.
