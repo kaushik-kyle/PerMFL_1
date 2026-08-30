@@ -351,6 +351,47 @@ Variance falls as depth rises, personalised standard deviation running 0.184,
 0.180, 0.112, 0.074 and global 0.819, 0.667, 0.414, 0.373. Deeper local training
 makes runs more reproducible as well as more accurate.
 
+## 8b. The lambda_team sweep
+
+CICIDS2017, T=100, K=10, L=20, group division 3, lambda 0.05, gamma 1.5, three
+seeds per point, exp 2600-2617. `lt/g` is the member-influence ratio
+lambda_team / gamma.
+
+| lambda_team | lt/g | PM macro F1 | sd | GM macro F1 | sd | PM acc | GM acc | GM FPR |
+|---|---|---|---|---|---|---|---|---|
+| 0.5 | 0.3 | 0.4168 | 0.0206 | 0.1529 | 0.0310 | 0.8817 | 0.8312 | 0.0887 |
+| 1.0 | 0.7 | 0.4383 | 0.0178 | 0.2169 | 0.0122 | 0.8860 | 0.8511 | 0.0816 |
+| 1.5 | 1.0 | 0.5202 | 0.0068 | 0.2480 | 0.0072 | 0.9108 | 0.8632 | 0.0788 |
+| 3.0 | 2.0 | 0.5818 | 0.0397 | 0.2603 | 0.0022 | 0.9203 | 0.8684 | 0.0757 |
+| 6.0 | 4.0 | 0.6480 | 0.0046 | 0.4046 | 0.0120 | 0.9340 | 0.8859 | 0.0642 |
+| **12.0** | 8.0 | **0.8440** | 0.0132 | **0.5341** | 0.0137 | 0.9576 | 0.9057 | 0.0475 |
+
+Monotone on both tiers across the whole range, and monotone on false-positive
+rate too, which falls from 0.0887 to 0.0475. The curve does not turn over. The
+stability bound at eta 0.03 and gamma 1.5 permits lambda_team below 31.8, so the
+sweep ran out of range rather than finding an optimum. Values of 18, 24 and 30
+are untested.
+
+Three consequences.
+
+**Every headline result in this project is conservative.** All of them use
+lambda_team = 1.5, chosen a priori with no evidence. At that point personalised
+macro F1 is 0.5202; at 12.0 it is 0.8440. The reported effect sizes understate
+what the parameter can do.
+
+**The 0.6 macro F1 target is reachable.** An earlier analysis concluded 0.6 was
+structurally unreachable, computing a cross-test ceiling of 0.4074. That
+conclusion was correct for its configuration, cross-test on at T=10 with L=500,
+and does not constrain this one.
+
+**There is a point where tuning becomes redesign.** At lambda_team = 12.0 the
+team model is weighted eight times more toward its members' average than toward
+the global model. That is closer to a per-team FedAvg with a weak global anchor
+than to the method the paper describes. The numbers are unambiguous, but a claim
+of correcting a coupled parameter is harder to sustain at the top of this range
+than at the bottom, and the write-up should choose its operating point
+deliberately rather than quoting the best cell.
+
 ## 9. Floors and ceilings
 
 | Quantity | Metric | Value |
