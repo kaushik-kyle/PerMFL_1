@@ -35,7 +35,7 @@ reported.
 | 18 | `main.py:38-56` | `--model_name mclr` has an `else` branch building `Mclr_Logistic(60, 10)` for any unlisted dataset. On `Cifar10` this silently constructs a 60-input model for 3072 features | open |
 | 19 | `main.py` argparse | `VGG11`, `VGG13`, `VGG16`, `VGG19` are valid choices with a construction branch, but no dataset branch feeds them | open |
 | 20 | `main.py` argparse | `--selected_users` is defined and never passed to `main()`. `--numusers` is the live flag | open |
-| 21 | `FLAlgorithms/servers/serverPerMFL.py:454,477` | neither `lamda_team` nor `weighted_agg` is written to the h5 or the filename. A shipped and a decoupled run at the same lambda are indistinguishable in every recorded field | open |
+| 21 | `FLAlgorithms/servers/serverPerMFL.py:454,477` | neither `lamda_team` nor `weighted_agg` is written to the h5 or the filename. A PerMFL and a Fine Tuned run at the same lambda are indistinguishable in every recorded field | open |
 
 ## Why 5 to 9 were worked around rather than patched
 
