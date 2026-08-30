@@ -37,6 +37,8 @@ reported.
 | 20 | `main.py` argparse | `--selected_users` is defined and never passed to `main()`. `--numusers` is the live flag | open |
 | 21 | `FLAlgorithms/servers/serverPerMFL.py:454,477` | neither `lamda_team` nor `weighted_agg` is written to the h5 or the filename. A PerMFL and a Fine Tuned run at the same lambda are indistinguishable in every recorded field | open |
 
+| 22 | `main.py` defaults, `clustering/team_former.py:53` | `--eps_hi` defaults to 0.0 and `--eps_lo` to infinity, so the CFMD-i trigger `mx > eps_hi and mean < eps_lo` reduces to `mx > 0 and mean < inf`, which is true whenever any two clients differ. The adaptive gate is unconditionally open and reclustering fires every round. Ours, not upstream | open |
+
 ## Why 5 to 9 were worked around rather than patched
 
 Defects 5, 6, 7 and 8 all sit on the `Emnist` path and interact. Patching them in

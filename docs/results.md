@@ -392,12 +392,42 @@ reported as though they were.
 Closing this needs the IDS headline re-run at T=100 with L=20, matching EMNIST
 and the paper's loop shape. See backlog B2b.
 
+## 11b. The clustering has never been tested as designed
+
+`--group_division 3` engages `team_former.py`, the MCTC formation with the
+CFMD-i drift trigger. B7 is the first batch whose logs prove it runs at all: it
+reclusters on 99 of 100 global rounds and reports adjusted Rand index against
+the loader's day-domain grouping every time.
+
+Two findings.
+
+**The trigger is not gating.** `should_recluster` returns
+`mx > eps_hi and mean < eps_lo`. With the default `eps_hi = 0.0` and
+`eps_lo = infinity` this is true whenever any two clients differ, so it fires
+unconditionally. No run has ever supplied real thresholds. What has been
+measured is per-round reclustering, not adaptive reclustering. See defect 22.
+
+**The partition never converges.** ARI oscillates between roughly 0.15 and 0.65
+for the whole run with no trend, mean 0.366. Teams are rebuilt into a
+substantially different partition every round.
+
+This gives the earlier null result a mechanism. Oracle, random and derived team
+assignment were statistically indistinguishable across five comparisons. If
+derived teams are re-randomised each round then derived is closer to random each
+round than to any stable structure, so the null is expected rather than
+surprising.
+
+Whether the clustering can find stable structure when the gate actually gates is
+untested. `should_recluster` already returns the observed max and mean pairwise
+distance so plausible thresholds can be read off a run and supplied.
+
 ## 12. Coverage gaps
 
 | Missing | Detail |
 |---|---|
 | Published datasets not run | MNIST, FMNIST, CIFAR-10, CIFAR100, FEMNIST, Synthetic with PerMFL |
 | Baselines not run | FedAvg, Ditto, PerAvg, AL2GD, pFedBayes on any dataset. h-QSGD cannot be run at all, defect 16 |
+| Clustering | `team_former.py` has never run with a working trigger, see section 11b |
 | Baselines partially run | pFedMe on NSL-KDD only, two runs. hierarchical-FedAvg on Synthetic, one run |
 | Configuration mismatch | every EMNIST run used 20 devices; the paper states 40 |
 | Unattributed | exp 900-905 on NSL-KDD do not follow the parity convention and are not labelled |
