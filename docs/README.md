@@ -6,6 +6,9 @@
 | [parameters.md](parameters.md) | every CLI flag split into live, dead and ours; every environment variable per loader; internal attribute names that mislead |
 | [modes.md](modes.md) | every switch and its values: algorithms, datasets, the model support matrix, team assignment, re-formation, coupling, partitioning, evaluation, output routing |
 | [results.md](results.md) | every measurement in `results/`, 297 runs, including the regression and the coverage gaps |
+| [defects.md](defects.md) | twenty-one defects in the released implementation, each with a verified current file:line and a fixed / worked-around / open status |
+| [run-book.md](run-book.md) | archived working log from `wip/paper-config`: environment setup, the certificate workaround, the run matrix, compute expectations |
+| [run-queue.md](run-queue.md) | archived experiment queue: the local-steps sweep with wall-clock, the team-size constraint analysis, four resolved blockers |
 | [comparison.md](comparison.md) | the paper's Tables 1, 2 and 3 verbatim, the paper's stated setup, and our run inventory beside them |
 
 ## Orientation
