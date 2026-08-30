@@ -69,7 +69,7 @@ under, and the ethical and legal position of the work.
 - **N3 Commodity hardware.**  Experiments must complete on a laptop CPU. No
     result may depend on access to a GPU cluster.
   
-- **N4 Backward compatibility.**  Every modification defaults to the shipped
+- **N4 Backward compatibility.**  Every modification defaults to the released
     behaviour, so results obtained before a change remain reproducible after
     it.
   
@@ -293,7 +293,7 @@ is made. Runs completed in minutes on one CPU core where a mixture-of-experts
 implementation required hours on a GPU, but the client counts, datasets and
 software stacks differ, so that observation is structural rather than measured.
 
-The baselines shipped with the base implementation were not run on the intrusion
+The baselines released with the base implementation were not run on the intrusion
 detection data. Only the method under test carries the metric instrumentation
 this study requires, and extending it to the others was not completed. The
 consequence is that the results position PerMFL against its own configurations
