@@ -41,8 +41,8 @@ emit() {  # $1 exp  $2 log-label  $3... flags
     print -r -- "# ended   : $(date -u +%FT%TZ)"
     print -r -- "# elapsed : $((t1-t0))s"
     print -r -- "# exit    : $rc"; } >> "$log"
-  print -r -- "$exp\t$label\t$rc\t$((t1-t0))\t$(date -u +%FT%TZ)\t$cmd" >> "$LOGROOT/manifest.tsv"
-  print "  exp$exp $label exit=$rc ${((t1-t0))}s"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$exp" "$label" "$rc" "$((t1-t0))" "$(date -u +%FT%TZ)" "$cmd" >> "$LOGROOT/manifest.tsv"
+  print "  exp$exp $label exit=$rc $((t1-t0))s"
 }
 
 case "$BATCH" in
