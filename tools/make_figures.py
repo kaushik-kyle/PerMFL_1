@@ -68,15 +68,31 @@ def sweep_curve():
     fig.tight_layout(); fig.savefig(f"{OUT}/fig_gain_vs_heterogeneity.png"); plt.close(fig)
     print("  wrote fig_gain_vs_heterogeneity.png")
 
-def confusion():
-    """Confusion matrices. Requires cm_global / cm_personal in the h5, which
-    save_results does not yet write. See docs/backlog.md item B1."""
-    d=load("Cicids")
-    have=[e for e,v in d.items() if "cm_global" in v]
-    if not have:
-        print("  SKIP confusion matrices: no run has persisted a matrix (backlog B1)")
-        return
-    print(f"  {len(have)} runs carry matrices, plotting")
+def confusion(ds, pair, classes, fname, title):
+    """Row-normalised confusion matrices, PerMFL beside Fine Tuned."""
+    d=load(ds)
+    if not all(e in d and "cm_global" in d[e] for e in pair):
+        print(f"  SKIP {fname}: no persisted matrix for {ds} {pair}"); return
+    fig,axes=plt.subplots(1,2,figsize=(7.6,3.4))
+    for ax,e,lbl in zip(axes,pair,["PerMFL","Fine Tuned"]):
+        cm=d[e]["cm_global"].astype(float)
+        rn=cm/np.maximum(cm.sum(1,keepdims=True),1)
+        im=ax.imshow(rn,cmap="Blues",vmin=0,vmax=1)
+        ax.set_title(f"{lbl}  (global model)",fontsize=9)
+        ax.set_xticks(range(len(classes))); ax.set_yticks(range(len(classes)))
+        ax.set_xticklabels(classes,fontsize=6,rotation=90)
+        ax.set_yticklabels(classes,fontsize=6)
+        ax.set_xlabel("Predicted",fontsize=8); ax.grid(False)
+        for i in range(len(classes)):
+            for j in range(len(classes)):
+                if rn[i,j]>=0.01:
+                    ax.text(j,i,f"{rn[i,j]:.2f}".lstrip("0"),ha="center",va="center",
+                            fontsize=5,color="white" if rn[i,j]>0.5 else "#333")
+    axes[0].set_ylabel("True",fontsize=8)
+    fig.colorbar(im,ax=axes,fraction=0.025,pad=0.02,label="row-normalised rate")
+    fig.suptitle(title,fontsize=10)
+    fig.savefig(f"{OUT}/{fname}"); plt.close(fig)
+    print(f"  wrote {fname}")
 
 if __name__=="__main__":
     print("figures:")
@@ -84,4 +100,8 @@ if __name__=="__main__":
     convergence("global_macro_f1","Global macro F1 (higher better)","fig_convergence_gm.png")
     convergence("global_test_accuracy","Global accuracy (higher better)","fig_convergence_gm_acc.png")
     sweep_curve()
-    confusion()
+    confusion("Emnist10",(2200,2201),[str(i) for i in range(10)],
+              "fig_confusion_emnist.png","EMNIST-10, 40 devices, seed 0")
+    confusion("Cicids",(2500,2501),
+              ["BENIGN","Bot","BruteForce","DDoS","DoS","Infiltration","PortScan","WebAttack","Heartbleed"],
+              "fig_confusion_cicids.png","CICIDS2017, seed 0")
