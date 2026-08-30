@@ -319,12 +319,37 @@ the mean regressed.
 
 | Sweep | Metric | Finding |
 |---|---|---|
-| Local steps L, EMNIST-10, L in {2,5,10,20} | PM accuracy, higher better | monotone, L=20 best: 95.86, 97.25, 97.96, 98.38 |
+| Local steps L, EMNIST-10, L in {2,5,10,20} | PM accuracy, higher better | monotone, L=20 best. Replicated at three seeds, see below |
 | Teams p_teams, EMNIST-10, {1,2,4,10} | PM macro F1, higher better | null: 0.9815, 0.9815, 0.9815, 0.9816 |
 | Horizon T, EMNIST-10, {5,100,400} | PM accuracy, higher better | 97.92, 98.38, 98.05 |
 | lambda value, EMNIST-10, 20.0 against 0.5 | PM macro F1, higher better | 0.9670 +- 0.0031 against 0.9819 +- 0.0008 |
 | Percentile clipping, CICIDS2017 | macro F1, higher better | +0.028 |
 | `OMP_NUM_THREADS=1` | wall-clock | 1.28x, not the 2 to 4x predicted |
+
+### Local-steps sweep, replicated
+
+EMNIST-10, 20 devices, T=100, three seeds per point, exp 2300-2502.
+
+| L | PM accuracy | sd | GM accuracy | sd | PM macro F1 |
+|---|---|---|---|---|---|
+| 2 | 95.89 | 0.184 | 76.80 | 0.819 | 0.9522 |
+| 5 | 97.36 | 0.180 | 82.05 | 0.667 | 0.9698 |
+| 10 | 98.02 | 0.112 | 84.44 | 0.414 | 0.9775 |
+| 20 | **98.41** | 0.074 | **86.19** | 0.373 | 0.9818 |
+
+Monotone increasing on both tiers. Every replicated mean falls within 0.11
+points of the original single run, so the exploratory result was sound.
+
+The final step is not uniformly significant. L=20 against L=10 gives +0.386 on
+personalised accuracy with t = 3.91, below the critical 4.303 at two degrees of
+freedom, though it wins on all three seeds. On the global model the same step
+gives +1.750 with t = 4.41, which clears. The supported claim is that accuracy
+increases monotonically with local depth across the range tested, with the
+final step significant on the global model and marginal on the personalised one.
+
+Variance falls as depth rises, personalised standard deviation running 0.184,
+0.180, 0.112, 0.074 and global 0.819, 0.667, 0.414, 0.373. Deeper local training
+makes runs more reproducible as well as more accurate.
 
 ## 9. Floors and ceilings
 
@@ -376,4 +401,4 @@ and the paper's loop shape. See backlog B2b.
 | Baselines partially run | pFedMe on NSL-KDD only, two runs. hierarchical-FedAvg on Synthetic, one run |
 | Configuration mismatch | every EMNIST run used 20 devices; the paper states 40 |
 | Unattributed | exp 900-905 on NSL-KDD do not follow the parity convention and are not labelled |
-| Single-run results | the local-steps sweep and the communication sweep have no seed replication |
+| Single-run results | the communication sweep has no seed replication. The local-steps sweep was replicated at three seeds, see section 8 |
