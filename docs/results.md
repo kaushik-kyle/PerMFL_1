@@ -251,24 +251,56 @@ accuracy gain +0.0418 against +0.0410 at 20 devices.
 | PerMFL | 97.88 | +1.39 | 85.60 | -6.08 |
 | Fine Tuned | 97.95 | +1.46 | 89.78 | -1.90 |
 
-### At the paper's horizon, T=400, seed 0 only
+### At the paper's horizon, T=400
 
-Exp 2210-2211. The remaining two seeds were still running when this was written.
+Exp 2210-2215, three seeds paired. Critical value at two degrees of freedom
+is 4.303.
 
-| | PM peak | GM peak | GM vs published 91.68 |
+| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+|---|---|---|---|---|---|---|
+| PM macro F1 | higher better | 0.9787 +- 0.0009 | 0.9786 +- 0.0007 | -0.0001 | -1.03 | 1/3 |
+| PM accuracy | higher better | 0.9796 +- 0.0009 | 0.9795 +- 0.0008 | -0.0001 | -0.65 | 1/3 |
+| PM macro FPR | lower better | 0.0023 +- 0.0001 | 0.0023 +- 0.0001 | +0.0000 | 0.62 | 1/3 |
+| GM macro F1 | higher better | 0.9018 +- 0.0012 | 0.9176 +- 0.0004 | +0.0158 | 33.35 | 3/3 |
+| GM accuracy | higher better | 0.9053 +- 0.0010 | 0.9206 +- 0.0004 | +0.0152 | 39.38 | 3/3 |
+| GM macro recall | higher better | 0.9022 +- 0.0011 | 0.9180 +- 0.0004 | +0.0158 | 42.39 | 3/3 |
+| GM macro FPR | lower better | 0.0105 +- 0.0001 | 0.0088 +- 0.0000 | -0.0017 | -41.19 | 3/3 |
+
+### Against the published global figure of 91.68
+
+| | Seeds | Mean | Versus published |
 |---|---|---|---|
-| PerMFL | 98.05 | 90.45 | -1.23 |
-| Fine Tuned | 98.04 | **92.03** | **+0.35** |
+| PerMFL | 90.45, 90.65, 90.51 | 90.53 | -1.15, exceeds on 0/3 |
+| Fine Tuned | 92.03, 92.09, 92.05 | 92.06 | +0.38, exceeds on 3/3 |
 
-Both arms have converged: the slope over the last fifty rounds is +0.0048 points
-per round for PerMFL and +0.0019 for Fine Tuned, so the gap is not a horizon
-artefact. On this seed Fine Tuned exceeds the published global figure while
-PerMFL falls short of it.
+The arms do not overlap and the two groups fall either side of the published
+number.
 
-Both personalised models overfit, peaking near round 130 to 190 and declining to
-97.79 and 97.56 by round 400. The paper reports one number per cell with no
-stated horizon, so whether its figures are final or best values affects the
-comparison.
+The defensible claim is that under the paper's own configuration, at a horizon
+where both arms have converged, the decoupled variant reaches the published
+global accuracy on every seed and the published coupling reaches it on none. The
+shorter phrasing, that it beats the published result, invites the objection that
+a peak is being compared against a figure whose horizon the paper never states.
+
+Three observations.
+
+The personalised model is unchanged. At T=400 the deltas are slightly negative
+with t below 1 and one win in three. At T=100 they were slightly positive with t
+near 1.7. Both are noise around zero, and the sign flip between horizons is
+itself evidence that the small positive deltas at T=100 were not real.
+
+The global gain shrinks with horizon but remains decisive: +0.0418 accuracy at
+T=100 against +0.0152 at T=400. Longer training lets the published coupling
+recover much of the gap on its own, but not all of it. The contribution is
+therefore partly convergence speed and partly final quality.
+
+Both arms have converged. The slope over the last fifty rounds is +0.0048 points
+per round for PerMFL and +0.0019 for Fine Tuned, so the remaining gap is not a
+horizon artefact.
+
+Both personalised models overfit, peaking between rounds 130 and 190 and
+declining by round 400. The paper reports one number per cell with no stated
+horizon, so whether its figures are final or best values affects the comparison.
 
 ## 7. Variance
 
