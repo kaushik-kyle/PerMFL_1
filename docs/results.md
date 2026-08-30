@@ -218,6 +218,58 @@ enters the device update.
 | PerMFL, ours, T=100 | 86.19 | -5.49 |
 | Fine Tuned, ours, T=100 | 90.29 | **-1.39** |
 
+## 6b. EMNIST-10 at the paper's client count
+
+MCLR, **40 devices in four teams of ten**, full participation, T=100, three seeds
+paired, exp 2200-2205. This is the paper's stated setup. Critical value at two
+degrees of freedom is 4.303.
+
+| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+|---|---|---|---|---|---|---|
+| PM macro F1 | higher better | 0.9780 +- 0.0003 | 0.9786 +- 0.0007 | +0.0006 | 1.62 | 3/3 |
+| PM accuracy | higher better | 0.9788 +- 0.0002 | 0.9795 +- 0.0008 | +0.0007 | 1.79 | 3/3 |
+| PM macro recall | higher better | 0.9776 +- 0.0002 | 0.9784 +- 0.0008 | +0.0008 | 1.93 | 3/3 |
+| PM macro FPR | lower better | 0.0024 +- 0.0000 | 0.0023 +- 0.0001 | -0.0001 | -1.84 | 3/3 |
+| GM macro F1 | higher better | 0.8503 +- 0.0029 | 0.8940 +- 0.0016 | +0.0437 | 53.40 | 3/3 |
+| GM accuracy | higher better | 0.8560 +- 0.0027 | 0.8978 +- 0.0014 | +0.0418 | 48.65 | 3/3 |
+| GM macro recall | higher better | 0.8514 +- 0.0022 | 0.8944 +- 0.0015 | +0.0431 | 79.38 | 3/3 |
+| GM macro FPR | lower better | 0.0160 +- 0.0003 | 0.0113 +- 0.0001 | -0.0046 | -52.67 | 3/3 |
+
+The four global metrics clear the critical value by an order of magnitude. The
+four personalised metrics do not clear it, every t falling between 1.6 and 1.9,
+though all three seeds move the same direction on each. The correct statement is
+that the personalised model is unchanged and the global model improves, not that
+there is a small personalised gain.
+
+Doubling the client count from 20 to 40 did not weaken the effect: global
+accuracy gain +0.0418 against +0.0410 at 20 devices.
+
+### Against the published figures, T=100
+
+| | PM accuracy | vs published 96.49 | GM accuracy | vs published 91.68 |
+|---|---|---|---|---|
+| PerMFL | 97.88 | +1.39 | 85.60 | -6.08 |
+| Fine Tuned | 97.95 | +1.46 | 89.78 | -1.90 |
+
+### At the paper's horizon, T=400, seed 0 only
+
+Exp 2210-2211. The remaining two seeds were still running when this was written.
+
+| | PM peak | GM peak | GM vs published 91.68 |
+|---|---|---|---|
+| PerMFL | 98.05 | 90.45 | -1.23 |
+| Fine Tuned | 98.04 | **92.03** | **+0.35** |
+
+Both arms have converged: the slope over the last fifty rounds is +0.0048 points
+per round for PerMFL and +0.0019 for Fine Tuned, so the gap is not a horizon
+artefact. On this seed Fine Tuned exceeds the published global figure while
+PerMFL falls short of it.
+
+Both personalised models overfit, peaking near round 130 to 190 and declining to
+97.79 and 97.56 by round 400. The paper reports one number per cell with no
+stated horizon, so whether its figures are final or best values affects the
+comparison.
+
 ## 7. Variance
 
 Metric is **GM accuracy standard deviation across seeds**, lower is better. The
