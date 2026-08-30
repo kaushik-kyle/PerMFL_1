@@ -25,7 +25,7 @@ def band(ds, exps, key):
 PANELS=[("CICIDS2017","Cicids",[906,908,910,912,914],[907,909,911,913,915]),
         ("TON-IoT","Toniot",[926,928,930,932,934],[927,929,931,933,935]),
         ("NSL-KDD","Nslkdd",[936,938,940,942,944],[937,939,941,943,945]),
-        ("EMNIST-10","Emnist10",[2100,2102,2104],[2101,2103,2105])]
+        ("EMNIST-10 (40 dev)","Emnist10",[2200,2202,2204],[2201,2203,2205])]
 
 def convergence(key, ylab, fname):
     fig,axes=plt.subplots(1,4,figsize=(9.5,2.5),sharey=True)

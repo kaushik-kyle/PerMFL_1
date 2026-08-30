@@ -33,6 +33,16 @@ figure, 96.49 PM or 91.68 GM.
 Both arms, three seeds, six runs. Roughly 20 minutes each, so about 90 minutes at
 two-way parallelism.
 
+### B2b. IDS headline at a converged horizon
+
+The IDS runs use T=10 with L=500; EMNIST and the paper use T=100 or 400 with
+L=20. Total local work is comparable but concentrated into a twentieth of the
+communication rounds, and the convergence figure shows both arms still rising at
+the final round on all three IDS datasets.
+
+Re-run the CICIDS headline at T=100, L=20, both arms, five seeds. Ten runs.
+Same for TON-IoT and NSL-KDD if the first shows the ordering holds.
+
 ### B3. Seed replication for the single-run sweeps
 
 The local-steps sweep and the communication sweep are reported as exploratory

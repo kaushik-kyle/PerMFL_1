@@ -268,7 +268,22 @@ score, 0.9525 to 0.4012 at one setting, because a class absent from the loss
 cannot be predicted. It produces no global model at all, so it offers nothing to a
 host with no local data or one that has not yet seen a given attack.
 
-## 11. Coverage gaps
+## 11. A limitation the convergence figure exposes
+
+The IDS runs stop at T=10 (CICIDS2017, TON-IoT) and T=20 (NSL-KDD). The
+convergence figure shows both arms still rising at the final round on all three,
+against EMNIST-10 where the curves plateau by round 75 of 100.
+
+The IDS comparisons therefore measure which arm rises faster over the first ten
+rounds, not which converges to a better model. The direction of every IDS result
+is consistent with EMNIST at a converged horizon, so the conclusion is unlikely
+to reverse, but the effect sizes are not converged values and should not be
+reported as though they were.
+
+Closing this needs the IDS headline re-run at T=100 with L=20, matching EMNIST
+and the paper's loop shape. See backlog B2b.
+
+## 12. Coverage gaps
 
 | Missing | Detail |
 |---|---|
