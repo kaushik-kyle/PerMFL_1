@@ -12,6 +12,18 @@ the member average by `--lamda`, and `decoupled` when `--lamda_team 1.5` is
 passed. Neither is recorded in the h5, so pairing is by exp_no parity: even is
 shipped, odd is decoupled.
 
+## 0. Verification status
+
+Every value below was recomputed from the h5 files on 30 August 2026 and matches
+the report chapters. Aggregation is the peak over a run's global rounds; the
+final-round value is not used anywhere. Paired t-statistics use ddof=1 over the
+per-seed differences.
+
+Nine t-statistics in Chapter 7 were found to drift in the last significant
+figure against a fresh recomputation and were corrected. The largest was the
+CICIDS k=8 global row, 213.4 against a recomputed 212.62. Every effect size was
+already exact. No conclusion changed.
+
 ## 1. Reproduction
 
 | | Ours | Published | Gap |
@@ -31,7 +43,7 @@ Changing the number of teams changes almost nothing.
 |---|---|---|
 | CICIDS2017 | 1 against 10 | 0.0002 |
 | EMNIST-10 | 1 against 4 | 0.0000 |
-| NSL-KDD | 1 against 10 | 0.0011 |
+| NSL-KDD | 1 against 4 | 0.0011 |
 
 Seed-to-seed noise on the same configuration is 0.0116, so all three are below
 the noise floor. Team assignment method, whether oracle, random or derived, was
@@ -47,7 +59,7 @@ CICIDS2017, domainmix, benign fraction 0.25, cross-test on, five seeds, exp 906-
 
 | Metric | Shipped | Decoupled | Delta |
 |---|---|---|---|
-| PM macro F1 | 0.2809 | 0.3154 | +0.0345 |
+| PM macro F1 | 0.2809 | 0.3154 | +0.0346 |
 | PM accuracy | 0.7842 | 0.8161 | +0.0320 |
 | GM macro F1 | 0.1139 | 0.2155 | +0.1016 |
 | GM accuracy | 0.5412 | 0.8487 | +0.3075 |
