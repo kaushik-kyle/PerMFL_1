@@ -50,8 +50,8 @@ list)
   cat <<'EOF'
 B1   confusion matrices, CICIDS headline, both arms x5 seeds     10 runs  ~40 min
 ALL  B2 B2L B3 B7 B1 in sequence
-B2   EMNIST-10 paper config, 40 devices T=100, both arms x3 seeds   6 runs  ~15 min
-B2L  same at T=400                                                  6 runs  ~60 min
+B2   EMNIST-10 paper config, 40 devices T=100, both arms x3 seeds   6 runs  ~27 min (measured 272s/run)
+B2L  same at T=400                                                  6 runs  ~110 min (4x B2)
 B3  local-steps sweep at 3 seeds                              12 runs  ~30 min
 B7  lamda_team sweep on CICIDS, 6 values x3 seeds             18 runs  ~2 h
 EOF
