@@ -14,7 +14,7 @@ which were subsequently resolved.
 
 Companion to `run.md`, which has the environment setup and the exact command
 forms. This file tracks what has run, what runs today on the laptop, and what
-waits for the lab machine.
+was cut; all work is CPU-only.
 
 Standard config unless a row says otherwise.
 
@@ -139,12 +139,11 @@ open, see Blocked below.
 
 ---
 
-## Tomorrow, lab machine with RTX 3070
+## Lab-machine section removed
 
-Everything here is GPU-bound. Estimates assume the Python overhead floor of
-0.45 ms per step measured on the laptop, which does not go away on a GPU.
+The GPU queue that stood here was cut. All work is CPU-only on the Mac.
 
-### L1. EMNIST-10 CNN, both arms
+## L1. EMNIST-10 CNN, both arms
 
 The non-convex half of Table 1. Paper targets PM 98.79, GM 93.12.
 
