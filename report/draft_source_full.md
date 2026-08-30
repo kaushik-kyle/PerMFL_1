@@ -412,6 +412,8 @@ team $i$, a team model $w_i$ to each of the $M$ teams, and a global model $x$
 to the server. Figure~(see above) shows the arrangement and the direction
 of each coupling.
 
+![Three-tier structure of PerMFL. Device parameters are pulled toward the team model, team models toward the global model. The weight the team places on its members is the parameter this project separates.](figures/fig_architecture.png)
+
 The training loop nests three counters. Each global round $t$ runs $K$ team
 rounds, and each team round runs $L$ local gradient steps on every
 participating device. At the start of a global round every team model is
@@ -640,6 +642,8 @@ sizes.
 ## Modifications to the base implementation
 
 Four changes were made, each defaulting to the shipped behaviour.
+
+![Component structure of the PerMFL path. The clustering module is engaged only under group division 3.](figures/fig_components.png)
 
 ### Argument binding
 
@@ -881,6 +885,8 @@ evaluation protocol imposes one, the structural ceiling is reported too.
 PerMFL's premise is that it applies when known team structures exist across
 devices. The direct test is to vary the team structure and measure the effect.
 
+![Global model macro F1 against global round, four datasets, both arms. The shaded band spans the seeds.](figures/fig_convergence_gm.png)
+
 Two experiments were run. The first compares team assignments: teams matching
 the true attack domains, teams assigned at random, and teams derived from client
 updates during training. The second removes the tier by setting the team count
@@ -960,7 +966,9 @@ All four exceed the critical value of 2.776 and win on every seed. The floors
 are 0.8171 accuracy and 0.0999 macro F1. The shipped global model sits below the
 accuracy floor; the decoupled one sits above it.
 
-### Variance
+![Confusion matrices for the global model on EMNIST-10 at 40 devices, row normalised. The largest single improvement is the digit five predicted as three.](figures/fig_confusion_emnist.png)
+
+## Variance
 
 The most consistent effect is not the mean. Across-seed standard deviation in
 global accuracy falls from 0.1885 to 0.0041 on CICIDS2017, from 0.0928 to 0.0004
@@ -988,6 +996,8 @@ seeds per point:
 | TON-IoT alpha{=}5.0 | 0.0646 | 1.000 | +0.1614 | 19.98 | +0.3764 | 26.75 |
 | NSL-KDD alpha{=}0.1 | 0.5379 | 1.000 | +0.1365 | 12.95 | +0.1592 | 5.53 |
 | NSL-KDD alpha{=}5.0 | 0.0333 | 1.000 | +0.1181 | 16.28 | +0.1129 | 5.76 |
+
+![Gain from separating the two roles of lambda, against client heterogeneity. The trend is negative on CICIDS2017 and TON-IoT and positive on NSL-KDD.](figures/fig_gain_vs_heterogeneity.png)
 
 The correction improves both models at every level on all three datasets, and
 the improvement grows as heterogeneity falls. On CICIDS2017 the personalised
