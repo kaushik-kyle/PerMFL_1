@@ -68,7 +68,7 @@ B2L) # same at the paper's T=400 horizon
     emit $((2211+s*2)) "finetuned_40dev_T400_seed$s" ${=EM_BASE} --num_global_iters 400 --tot_users 40 --numusers 10 --lamda_team 1.5 --seed $s
   done ;;
 B1)  # headline CICIDS re-run, now persisting confusion matrices
-  i=2500
+  i=2700
   for s in 0 1 2 3 4; do
     emit $i     "permfl_cm_seed$s"    ${=CI_BASE} --seed $s
     emit $((i+1)) "finetuned_cm_seed$s" ${=CI_BASE} --lamda_team 1.5 --seed $s
@@ -79,7 +79,7 @@ B3)  # local-steps sweep, replicated
     emit $((2300+L*10+s)) "L${L}_seed$s" ${=EM_BASE} --num_global_iters 100 --tot_users 20 --numusers 5 --local_iters $L --seed $s
   done; done ;;
 B7)  # lamda_team sweep at one heterogeneity setting
-  i=2400
+  i=2600
   for LT in 0.5 1.0 1.5 3.0 6.0 12.0; do for s in 0 1 2; do
     emit $i "lt${LT}_seed$s" ${=CI_BASE} --lamda_team $LT --seed $s; i=$((i+1))
   done; done ;;
