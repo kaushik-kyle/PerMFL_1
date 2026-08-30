@@ -955,7 +955,7 @@ On CICIDS2017 with attack-domain partitioning, benign traffic thinned to
 twenty-five per cent of the training split, and evaluation on unseen classes,
 across five paired seeds:
 
-| metric | PerMFL | Fine Tuned | difference | paired t |
+| metric | PerMFL | Split-λ | difference | paired t |
 |---|---|---|---|---|
 | Personal macro F1 | 0.2809 pm 0.0017 | 0.3154 pm 0.0044 | +0.0346 | 21.25 |
 | Personal accuracy | 0.7842 pm 0.0062 | 0.8161 pm 0.0042 | +0.0320 | 10.61 |
@@ -964,7 +964,7 @@ across five paired seeds:
 
 All four exceed the critical value of 2.776 and win on every seed. The floors
 are 0.8171 accuracy and 0.0999 macro F1. The PerMFL global model sits below the
-accuracy floor; the Fine Tuned one sits above it.
+accuracy floor; the Split-λ one sits above it.
 
 ![Confusion matrices for the global model on EMNIST-10 at 40 devices, row normalised. The largest single improvement is the digit five predicted as three.](figures/fig_confusion_emnist.png)
 
@@ -978,7 +978,7 @@ rounds and twenty local steps, multi-class logistic regression, lambda 0.5,
 gamma 1.5, beta 0.6 and alpha 0.01. Every one of those values is taken from the
 paper. Three seeds, paired.
 
-| Metric | Direction | PerMFL | Fine Tuned | Delta | t |
+| Metric | Direction | PerMFL | Split-λ | Delta | t |
 |---|---|---|---|---|---|
 | Personalised macro F1 | higher better | 0.9787 | 0.9786 | -0.0001 | -1.03 |
 | Personalised accuracy | higher better | 0.9796 | 0.9795 | -0.0001 | -0.65 |
@@ -1000,7 +1000,7 @@ global accuracy. Measured against the latter:
 | Configuration | Global accuracy by seed | Mean | Versus 91.68 |
 |---|---|---|---|
 | PerMFL | 90.45, 90.65, 90.51 | 90.53 | -1.15, exceeds on none |
-| Fine Tuned | 92.03, 92.09, 92.05 | 92.06 | +0.38, exceeds on all three |
+| Split-λ | 92.03, 92.09, 92.05 | 92.06 | +0.38, exceeds on all three |
 
 The two arms do not overlap and fall either side of the published number. Both
 have converged: over the final fifty rounds the global model gains 0.0048 points
@@ -1065,7 +1065,7 @@ the average of the team's members, and an average of divergent members carries
 little usable signal. When members agree, the same term carries a great deal.
 The correction lets the model use information it already had.
 
-At the least skewed CICIDS setting the Fine Tuned configuration reaches 0.8432
+At the least skewed CICIDS setting the Split-λ configuration reaches 0.8432
 personalised and 0.8546 global macro F1 against a ceiling of 1.0, compared with
 0.5176 and 0.1497 for the PerMFL configuration.
 
@@ -1074,7 +1074,7 @@ personalised and 0.8546 global macro F1 against a ceiling of 1.0, compared with
 One configuration goes the other way. Under attack-domain partitioning on
 TON-IoT, at the highest heterogeneity measured anywhere in the study, the global
 macro F1 falls from 0.0917 to 0.0403, $t = -6.21$, losing on all five seeds. The
-Fine Tuned global accuracy is 0.2369 with a standard deviation of zero, which is
+Split-λ global accuracy is 0.2369 with a standard deviation of zero, which is
 exactly the majority-class rate: the model collapsed to predicting normal
 traffic.
 

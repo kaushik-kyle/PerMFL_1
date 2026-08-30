@@ -112,16 +112,16 @@ two labels per device. **This is half the device count the paper states.**
 | 700, 702, 704 | 100 | lambda = 20.0 | 96.90-97.42 | 77.20-79.77 |
 | 701, 703, 705 | 100 | lambda = 0.5 | 98.35-98.49 | 85.58-86.53 |
 | 2100, 2102, 2104 | 100 | PerMFL, lambda_team = lambda | 98.35-98.49 | 85.79-86.53 |
-| 2101, 2103, 2105 | 100 | Fine Tuned, lambda_team = 1.5 | 98.35-98.48 | 90.20-90.37 |
+| 2101, 2103, 2105 | 100 | Split-λ, lambda_team = 1.5 | 98.35-98.48 | 90.20-90.37 |
 
 ## Table G. The two comparisons that matter, kept apart
 
 | | Quantity | Baseline | Comparator | Difference |
 |---|---|---|---|---|
 | Reproduction | PM accuracy, T=400 | ours 96.45 | published 96.49 | **0.04 pp short** |
-| Fine tuning | GM macro F1, T=100 | PerMFL 0.8513 | Fine Tuned 0.8959 | **+4.46 pp** |
-| Fine tuning | GM accuracy, T=100 | PerMFL 86.19 | Fine Tuned 90.29 | **+4.10 pp** |
-| Fine tuning | PM accuracy, T=100 | PerMFL 98.41 | Fine Tuned 98.41 | -0.01 pp |
+| Splitting λ | GM macro F1, T=100 | PerMFL 0.8513 | Split-λ 0.8959 | **+4.46 pp** |
+| Splitting λ | GM accuracy, T=100 | PerMFL 86.19 | Split-λ 90.29 | **+4.10 pp** |
+| Splitting λ | PM accuracy, T=100 | PerMFL 98.41 | Split-λ 98.41 | -0.01 pp |
 
 The reproduction gap and the fine-tuning gain are not the same size. They differ
 by a factor of about 110, and they are different quantities on different tiers.
@@ -132,10 +132,10 @@ by a factor of about 110, and they are different quantities on different tiers.
 |---|---|---|
 | Published PerMFL (GM) | 91.68 | - |
 | Ours, PerMFL, T=100 | 86.19 | -5.49 |
-| Ours, Fine Tuned, T=100 | 90.29 | **-1.39** |
+| Ours, Split-λ, T=100 | 90.29 | **-1.39** |
 | Ours, fixed, T=400 (exp 3) | 90.45 | -1.23 |
 | Ours, defect present, T=400 (exp 2) | 87.84 | -3.84 |
 
-Fine tuning recovers about three quarters of the shortfall to the published
+Splitting λ recovers about three quarters of the shortfall to the published
 global-model figure, at a quarter of the published horizon and half the
 published device count.

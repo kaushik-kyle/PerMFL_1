@@ -2,7 +2,7 @@
 
 Runs not yet done, ordered by what they buy the dissertation. Nothing here has
 been executed. Terminology follows [results.md](results.md): **PerMFL** is the
-method as published, **Fine Tuned** is `--lamda_team 1.5`.
+method as published, **Split-λ** is `--lamda_team 1.5`.
 
 Time estimates are extrapolated from measured throughput, EMNIST-10 MCLR at
 T=100 with 20 devices taking 2.5 minutes per run at two-way parallelism. They
@@ -27,7 +27,7 @@ Without this there is no confusion matrix in the report, on any dataset.
 
 Every EMNIST run used 20 devices in four teams. The paper states **40 devices in
 four teams of ten**, full participation, T=400. The current reproduction and the
-Fine Tuned comparison are therefore not like-for-like against either published
+Split-λ comparison are therefore not like-for-like against either published
 figure, 96.49 PM or 91.68 GM.
 
 Both arms, three seeds, six runs. Roughly 20 minutes each, so about 90 minutes at
@@ -116,7 +116,7 @@ Needs establishing either way before Chapter 5 can claim it as delivered.
 
 ### B10. Diagnosing the TON-IoT domain regression
 
-The one negative result, exp 916-925. Fine Tuned global accuracy pins to 0.2369,
+The one negative result, exp 916-925. Split-λ global accuracy pins to 0.2369,
 the majority-class floor, in four of five seeds. Worth a small diagnostic set at
 intermediate `lamda_team` values to find where the collapse begins. Six runs.
 

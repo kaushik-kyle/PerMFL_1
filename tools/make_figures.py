@@ -31,7 +31,7 @@ def convergence(key, ylab, fname):
     fig,axes=plt.subplots(1,4,figsize=(9.5,2.5),sharey=True)
     drew=False
     for ax,(title,ds,pe,fe) in zip(axes,PANELS):
-        for exps,c,lbl in [(pe,C_P,"PerMFL"),(fe,C_F,"Fine Tuned")]:
+        for exps,c,lbl in [(pe,C_P,"PerMFL"),(fe,C_F,"Split-$\\lambda$")]:
             m,lo,hi=band(ds,exps,key)
             if m is None: continue
             x=np.arange(1,len(m)+1); drew=True
@@ -63,18 +63,18 @@ def sweep_curve():
         ax.axhline(0,color="#999",lw=0.6,ls="--")
         ax.set_xlabel("Client heterogeneity (mean pairwise JSD)")
         ax.set_title(lbl,fontsize=9)
-    axes[0].set_ylabel("Gain in macro F1\n(Fine Tuned minus PerMFL)",fontsize=8)
+    axes[0].set_ylabel("Gain in macro F1\n(Split-$\\lambda$ minus PerMFL)",fontsize=8)
     axes[0].legend(frameon=False,fontsize=8)
     fig.tight_layout(); fig.savefig(f"{OUT}/fig_gain_vs_heterogeneity.png"); plt.close(fig)
     print("  wrote fig_gain_vs_heterogeneity.png")
 
 def confusion(ds, pair, classes, fname, title):
-    """Row-normalised confusion matrices, PerMFL beside Fine Tuned."""
+    """Row-normalised confusion matrices, PerMFL beside Split-lambda."""
     d=load(ds)
     if not all(e in d and "cm_global" in d[e] for e in pair):
         print(f"  SKIP {fname}: no persisted matrix for {ds} {pair}"); return
     fig,axes=plt.subplots(1,2,figsize=(7.6,3.4))
-    for ax,e,lbl in zip(axes,pair,["PerMFL","Fine Tuned"]):
+    for ax,e,lbl in zip(axes,pair,["PerMFL","Split-$\\lambda$"]):
         cm=d[e]["cm_global"].astype(float)
         rn=cm/np.maximum(cm.sum(1,keepdims=True),1)
         im=ax.imshow(rn,cmap="Blues",vmin=0,vmax=1)

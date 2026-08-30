@@ -10,10 +10,10 @@ Every measurement in `results/`, 297 h5 files. Published comparisons are in
 | Name | Meaning |
 |---|---|
 | **PerMFL** | the method as published. `--lamda_team` is unset, so the team update weights the member average by `--lamda`, the same parameter that governs the device update |
-| **Fine Tuned** | `--lamda_team 1.5`. The team update's weight on the member average is set independently of the device proximal coefficient |
+| **Split-λ** | `--lamda_team 1.5`. The team update's weight on the member average is set independently of the device proximal coefficient |
 
 Neither arm is recorded in the h5 file, so pairing is by exp_no parity: even is
-PerMFL, odd is Fine Tuned. See defect 21 in [defects.md](defects.md).
+PerMFL, odd is Split-λ. See defect 21 in [defects.md](defects.md).
 
 **The two tiers**, following the paper's own notation.
 
@@ -76,9 +76,9 @@ influence is 3.3 per cent. The global model advances 0.135 per cent per round.
 
 CICIDS2017, T=100, K=10, L=20, group division 3, five seeds, exp 2700-2709.
 Critical value at four degrees of freedom is 2.776. PerMFL is lambda_team 0.05,
-the published coupling; Fine Tuned is lambda_team 1.5.
+the published coupling; Split-λ is lambda_team 1.5.
 
-| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+| Metric | Direction | PerMFL | Split-λ | Delta | t | Wins |
 |---|---|---|---|---|---|---|
 | PM macro F1 | higher better | 0.4182 +- 0.0364 | 0.5086 +- 0.0168 | +0.0904 | 4.29 | 5/5 |
 | PM accuracy | higher better | 0.8390 +- 0.0081 | 0.9041 +- 0.0107 | +0.0651 | 9.28 | 5/5 |
@@ -100,7 +100,7 @@ be retired from the report rather than shown alongside.
 CICIDS2017, domainmix partition, benign fraction 0.25, cross-test on, five seeds,
 exp 906-915. Critical value at four degrees of freedom is 2.776.
 
-| Metric | Direction | PerMFL | Fine Tuned | Delta | t |
+| Metric | Direction | PerMFL | Split-λ | Delta | t |
 |---|---|---|---|---|---|
 | PM macro F1 | higher better | 0.2809 | 0.3154 | +0.0346 | 21.25 |
 | PM accuracy | higher better | 0.7842 | 0.8161 | +0.0320 | 10.61 |
@@ -109,7 +109,7 @@ exp 906-915. Critical value at four degrees of freedom is 2.776.
 
 All four clear the critical value and win on every seed. The floors are 0.8171
 accuracy and 0.0999 macro F1. The PerMFL global model sits below the accuracy
-floor; the Fine Tuned one sits above it.
+floor; the Split-λ one sits above it.
 
 ## 4. Heterogeneity sweep
 
@@ -118,7 +118,7 @@ better.** Ordered within each dataset from most to least heterogeneous.
 
 ### CICIDS2017, exp 2000-2023, twelve pairs
 
-| Pair | PerMFL (PM) | Fine Tuned (PM) | Delta PM | PerMFL (GM) | Fine Tuned (GM) | Delta GM |
+| Pair | PerMFL (PM) | Split-λ (PM) | Delta PM | PerMFL (GM) | Split-λ (GM) | Delta GM |
 |---|---|---|---|---|---|---|
 | 2000/2001 | 0.2391 | 0.2764 | +0.0373 | 0.0965 | 0.2727 | +0.1762 |
 | 2002/2003 | 0.2479 | 0.2712 | +0.0233 | 0.1063 | 0.2357 | +0.1294 |
@@ -134,11 +134,11 @@ better.** Ordered within each dataset from most to least heterogeneous.
 | 2022/2023 | 0.5042 | 0.8358 | +0.3316 | 0.1421 | 0.8419 | +0.6997 |
 | **mean** | 0.4244 | 0.5993 | **+0.1749** | 0.1299 | 0.5639 | **+0.4340** |
 
-Fine Tuned wins 12/12 on both tiers.
+Split-λ wins 12/12 on both tiers.
 
 ### TON-IoT, exp 2024-2041, nine pairs
 
-| Pair | PerMFL (PM) | Fine Tuned (PM) | Delta PM | PerMFL (GM) | Fine Tuned (GM) | Delta GM |
+| Pair | PerMFL (PM) | Split-λ (PM) | Delta PM | PerMFL (GM) | Split-λ (GM) | Delta GM |
 |---|---|---|---|---|---|---|
 | 2024/2025 | 0.1471 | 0.1845 | +0.0374 | 0.1111 | 0.2279 | +0.1168 |
 | 2026/2027 | 0.1757 | 0.2272 | +0.0515 | 0.0318 | 0.2096 | +0.1779 |
@@ -151,11 +151,11 @@ Fine Tuned wins 12/12 on both tiers.
 | 2040/2041 | 0.2588 | 0.4256 | +0.1668 | 0.1277 | 0.5132 | +0.3855 |
 | **mean** | 0.2154 | 0.3187 | **+0.1033** | 0.0875 | 0.3614 | **+0.2739** |
 
-Fine Tuned wins 9/9 on both tiers.
+Split-λ wins 9/9 on both tiers.
 
 ### NSL-KDD, exp 2042-2053, six pairs
 
-| Pair | PerMFL (PM) | Fine Tuned (PM) | Delta PM | PerMFL (GM) | Fine Tuned (GM) | Delta GM |
+| Pair | PerMFL (PM) | Split-λ (PM) | Delta PM | PerMFL (GM) | Split-λ (GM) | Delta GM |
 |---|---|---|---|---|---|---|
 | 2042/2043 | 0.3325 | 0.4739 | +0.1415 | 0.3635 | 0.4839 | +0.1204 |
 | 2044/2045 | 0.3316 | 0.4479 | +0.1163 | 0.3102 | 0.4519 | +0.1418 |
@@ -165,7 +165,7 @@ Fine Tuned wins 9/9 on both tiers.
 | 2052/2053 | 0.3356 | 0.4640 | +0.1284 | 0.3134 | 0.4645 | +0.1511 |
 | **mean** | 0.3335 | 0.4608 | **+0.1273** | 0.3267 | 0.4627 | **+0.1360** |
 
-Fine Tuned wins 6/6 on both tiers.
+Split-λ wins 6/6 on both tiers.
 
 ### Sweep summary with significance
 
@@ -195,7 +195,7 @@ TON-IoT under the `domain` partition, exp 916-925, five pairs. This is the most
 heterogeneous configuration measured, JSD 0.6879. Metric is **macro F1**, higher
 is better.
 
-| Pair | PerMFL (GM) | Fine Tuned (GM) | Delta GM |
+| Pair | PerMFL (GM) | Split-λ (GM) | Delta GM |
 |---|---|---|---|
 | 916/917 | 0.1068 | 0.0483 | -0.0585 |
 | 918/919 | 0.0822 | 0.0383 | -0.0439 |
@@ -204,7 +204,7 @@ is better.
 | 924/925 | 0.0740 | 0.0383 | -0.0357 |
 | **mean** | 0.0917 | 0.0403 | **-0.0514**, t = -6.21 |
 
-Fine Tuned wins 0/5. Its GM accuracy is 0.2369 in four of the five, which is
+Split-λ wins 0/5. Its GM accuracy is 0.2369 in four of the five, which is
 exactly the majority-class floor, so the global model has collapsed to
 predicting `normal`. The personalised model still improved in all five pairs,
 PM macro F1 0.1561 to 0.1701 and similar.
@@ -214,7 +214,7 @@ PM macro F1 0.1561 to 0.1701 and similar.
 MCLR, T=100, 20 devices in four teams, three seeds paired, exp 2100-2105.
 Critical value at two degrees of freedom is 4.303.
 
-| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+| Metric | Direction | PerMFL | Split-λ | Delta | t | Wins |
 |---|---|---|---|---|---|---|
 | PM macro F1 | higher better | 0.9818 +- 0.0008 | 0.9818 +- 0.0007 | -0.0000 | -0.54 | 1/3 |
 | PM accuracy | higher better | 0.9841 +- 0.0007 | 0.9841 +- 0.0007 | -0.0001 | -1.73 | 0/3 |
@@ -239,7 +239,7 @@ enters the device update.
 |---|---|---|
 | Published PerMFL (GM), MCLR | 91.68 | - |
 | PerMFL, ours, T=100 | 86.19 | -5.49 |
-| Fine Tuned, ours, T=100 | 90.29 | **-1.39** |
+| Split-λ, ours, T=100 | 90.29 | **-1.39** |
 
 ## 6b. EMNIST-10 at the paper's client count
 
@@ -247,7 +247,7 @@ MCLR, **40 devices in four teams of ten**, full participation, T=100, three seed
 paired, exp 2200-2205. This is the paper's stated setup. Critical value at two
 degrees of freedom is 4.303.
 
-| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+| Metric | Direction | PerMFL | Split-λ | Delta | t | Wins |
 |---|---|---|---|---|---|---|
 | PM macro F1 | higher better | 0.9780 +- 0.0003 | 0.9786 +- 0.0007 | +0.0006 | 1.62 | 3/3 |
 | PM accuracy | higher better | 0.9788 +- 0.0002 | 0.9795 +- 0.0008 | +0.0007 | 1.79 | 3/3 |
@@ -272,14 +272,14 @@ accuracy gain +0.0418 against +0.0410 at 20 devices.
 | | PM accuracy | vs published 96.49 | GM accuracy | vs published 91.68 |
 |---|---|---|---|---|
 | PerMFL | 97.88 | +1.39 | 85.60 | -6.08 |
-| Fine Tuned | 97.95 | +1.46 | 89.78 | -1.90 |
+| Split-λ | 97.95 | +1.46 | 89.78 | -1.90 |
 
 ### At the paper's horizon, T=400
 
 Exp 2210-2215, three seeds paired. Critical value at two degrees of freedom
 is 4.303.
 
-| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+| Metric | Direction | PerMFL | Split-λ | Delta | t | Wins |
 |---|---|---|---|---|---|---|
 | PM macro F1 | higher better | 0.9787 +- 0.0009 | 0.9786 +- 0.0007 | -0.0001 | -1.03 | 1/3 |
 | PM accuracy | higher better | 0.9796 +- 0.0009 | 0.9795 +- 0.0008 | -0.0001 | -0.65 | 1/3 |
@@ -294,7 +294,7 @@ is 4.303.
 | | Seeds | Mean | Versus published |
 |---|---|---|---|
 | PerMFL | 90.45, 90.65, 90.51 | 90.53 | -1.15, exceeds on 0/3 |
-| Fine Tuned | 92.03, 92.09, 92.05 | 92.06 | +0.38, exceeds on 3/3 |
+| Split-λ | 92.03, 92.09, 92.05 | 92.06 | +0.38, exceeds on 3/3 |
 
 The arms do not overlap and the two groups fall either side of the published
 number.
@@ -318,7 +318,7 @@ recover much of the gap on its own, but not all of it. The contribution is
 therefore partly convergence speed and partly final quality.
 
 Both arms have converged. The slope over the last fifty rounds is +0.0048 points
-per round for PerMFL and +0.0019 for Fine Tuned, so the remaining gap is not a
+per round for PerMFL and +0.0019 for Split-λ, so the remaining gap is not a
 horizon artefact.
 
 Both personalised models overfit, peaking between rounds 130 and 190 and
@@ -328,10 +328,10 @@ horizon, so whether its figures are final or best values affects the comparison.
 ## 7. Variance
 
 Metric is **GM accuracy standard deviation across seeds**, lower is better. The
-Fine Tuned global model is far more stable, and this holds even on TON-IoT where
+Split-λ global model is far more stable, and this holds even on TON-IoT where
 the mean regressed.
 
-| Dataset | PerMFL | Fine Tuned |
+| Dataset | PerMFL | Split-λ |
 |---|---|---|
 | CICIDS2017 | 0.1885 | 0.0041 |
 | TON-IoT, victim-IP | 0.0928 | 0.0004 |
@@ -422,14 +422,14 @@ CICIDS2017, global model, seed 0, exp 2700 and 2701, lambda_team 1.5.
 | | Classes with any true-positive rate | Attack classes sent entirely to BENIGN |
 |---|---|---|
 | PerMFL | 2 of 9: BENIGN 0.86, DDoS 0.69 | 3 of 8 |
-| Fine Tuned | 3 of 9: BENIGN 1.00, Bot 0.39, DDoS 0.68 | 5 of 8 |
+| Split-λ | 3 of 9: BENIGN 1.00, Bot 0.39, DDoS 0.68 | 5 of 8 |
 
-Fine Tuned wins on macro F1 and the metric is not misleading: it recovers Bot,
+Split-λ wins on macro F1 and the metric is not misleading: it recovers Bot,
 holds DDoS and takes BENIGN from 0.86 to 1.00.
 
 It also sends more attack classes wholly to BENIGN, five against three. PerMFL
 spreads its errors across wrong attack labels, DoS predicted as PortScan and
-BruteForce as DDoS. Fine Tuned concentrates them on BENIGN. In an intrusion
+BruteForce as DDoS. Split-λ concentrates them on BENIGN. In an intrusion
 detection setting these failures are not equivalent: a misclassified attack
 still raises an alert, a benign classification does not. The two arms fail
 differently and the better-scoring one fails more dangerously.
