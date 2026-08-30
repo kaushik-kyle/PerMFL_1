@@ -72,7 +72,30 @@ Mechanism: at lambda 0.05, gamma 1.5, eta 0.03 the team update weights the
 member average at 0.0015 against a 0.045 pull toward the global model, so member
 influence is 3.3 per cent. The global model advances 0.135 per cent per round.
 
-## 3. Headline comparison
+## 3. Headline comparison, converged horizon
+
+CICIDS2017, T=100, K=10, L=20, group division 3, five seeds, exp 2700-2709.
+Critical value at four degrees of freedom is 2.776. PerMFL is lambda_team 0.05,
+the published coupling; Fine Tuned is lambda_team 1.5.
+
+| Metric | Direction | PerMFL | Fine Tuned | Delta | t | Wins |
+|---|---|---|---|---|---|---|
+| PM macro F1 | higher better | 0.4182 +- 0.0364 | 0.5086 +- 0.0168 | +0.0904 | 4.29 | 5/5 |
+| PM accuracy | higher better | 0.8390 +- 0.0081 | 0.9041 +- 0.0107 | +0.0651 | 9.28 | 5/5 |
+| GM macro F1 | higher better | 0.1165 +- 0.0178 | 0.2457 +- 0.0064 | +0.1292 | 15.68 | 5/5 |
+| GM accuracy | higher better | 0.7545 +- 0.0497 | 0.8626 +- 0.0013 | +0.1081 | 4.76 | 5/5 |
+| GM macro recall | higher better | 0.1604 +- 0.0370 | 0.2269 +- 0.0043 | +0.0664 | 4.07 | 5/5 |
+
+All five metrics clear the critical value and win on every seed. Global accuracy
+standard deviation falls from 0.0497 to 0.0013, a factor of thirty-eight.
+
+**This supersedes the older headline below.** The earlier figures come from runs
+at T=10 with L=500, where the convergence figure shows both arms still rising.
+The personalised gain there is +0.0345 against +0.0904 here, so the unconverged
+runs understate the effect by roughly a factor of three. The older numbers should
+be retired from the report rather than shown alongside.
+
+## 3b. Superseded headline, unconverged horizon
 
 CICIDS2017, domainmix partition, benign fraction 0.25, cross-test on, five seeds,
 exp 906-915. Critical value at four degrees of freedom is 2.776.
