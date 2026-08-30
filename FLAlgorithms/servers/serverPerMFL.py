@@ -474,6 +474,13 @@ class PerMFL():
             hf.create_dataset('beta', data=self.beta)
             hf.create_dataset('gamma', data=self.gamma)
             hf.create_dataset('lambda', data=self.lamda)
+            # defect 21: these two decided the experiment and were never recorded
+            hf.create_dataset('lambda_team', data=self.lamda_team)
+            hf.create_dataset('weighted_agg', data=int(self.weighted_agg))
+            hf.create_dataset('tot_users', data=int(sum(len(g) for g in self.users)))
+            hf.create_dataset('num_teams', data=int(self.group))
+            hf.create_dataset('p_teams', data=int(self.p_teams))
+            hf.create_dataset('num_users_per_round', data=int(self.num_users))
             hf.create_dataset('eta', data=self.eta)
             # hf.create_dataset('tau', data=self.tau)
             hf.create_dataset('global_rounds', data=self.num_glob_iters)
@@ -495,6 +502,10 @@ class PerMFL():
             hf.create_dataset('per_macro_recall', data=self.per_recall)
             hf.create_dataset('global_macro_fpr', data=self.global_fpr)
             hf.create_dataset('per_macro_fpr', data=self.per_fpr)
+            # final-round confusion matrices, [true, predicted]
+            if getattr(self, 'last_cm_g', None) is not None:
+                hf.create_dataset('cm_global', data=self.last_cm_g)
+                hf.create_dataset('cm_personal', data=self.last_cm_p)
 
             # hf.create_dataset('team_train_accuracy', data=self.global_train_acc)
             # hf.create_dataset('team_train_loss', data=self.global_train_loss)
@@ -722,6 +733,8 @@ class PerMFL():
         
         
         gf1, pf1, cmg, cmp_ = self._pooled_f1()
+        # keep the last matrices so save_results can persist them; defect B1
+        self.last_cm_g, self.last_cm_p = cmg, cmp_
         self.global_f1.append(gf1)
         self.per_f1.append(pf1)
         from FLAlgorithms.metrics import full_report
