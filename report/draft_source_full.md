@@ -968,6 +968,59 @@ accuracy floor; the decoupled one sits above it.
 
 ![Confusion matrices for the global model on EMNIST-10 at 40 devices, row normalised. The largest single improvement is the digit five predicted as three.](figures/fig_confusion_emnist.png)
 
+## The paper's own configuration
+
+The results above use configurations chosen for this project. The strongest test
+of a correction to a published method is whether it holds at that method's own
+stated setup, so the comparison was repeated on EMNIST-10 with forty devices in
+four teams of ten, full participation, four hundred global rounds, ten team
+rounds and twenty local steps, multi-class logistic regression, lambda 0.5,
+gamma 1.5, beta 0.6 and alpha 0.01. Every one of those values is taken from the
+paper. Three seeds, paired.
+
+| Metric | Direction | PerMFL | Fine Tuned | Delta | t |
+|---|---|---|---|---|---|
+| Personalised macro F1 | higher better | 0.9787 | 0.9786 | -0.0001 | -1.03 |
+| Personalised accuracy | higher better | 0.9796 | 0.9795 | -0.0001 | -0.65 |
+| Global macro F1 | higher better | 0.9018 | 0.9176 | +0.0158 | 33.35 |
+| Global accuracy | higher better | 0.9053 | 0.9206 | +0.0152 | 39.38 |
+| Global macro recall | higher better | 0.9022 | 0.9180 | +0.0158 | 42.39 |
+| Global macro FPR | lower better | 0.0105 | 0.0088 | -0.0017 | -41.19 |
+
+The critical value at two degrees of freedom is 4.303. The four global metrics
+clear it by an order of magnitude and win on every seed. The three personalised
+metrics do not clear it, and their deltas are negative here where they were
+marginally positive at a shorter horizon. The correct reading is that the
+personalised model is unaffected, which is what the update rules predict, since
+the separated parameter enters only the team update.
+
+The published figures for this cell are 96.49 personalised accuracy and 91.68
+global accuracy. Measured against the latter:
+
+| Configuration | Global accuracy by seed | Mean | Versus 91.68 |
+|---|---|---|---|
+| PerMFL | 90.45, 90.65, 90.51 | 90.53 | -1.15, exceeds on none |
+| Fine Tuned | 92.03, 92.09, 92.05 | 92.06 | +0.38, exceeds on all three |
+
+The two arms do not overlap and fall either side of the published number. Both
+have converged: over the final fifty rounds the global model gains 0.0048 points
+per round under the published coupling and 0.0019 under the separated one, so
+the remaining difference is not an artefact of stopping early.
+
+The claim this supports is narrow and worth stating precisely. Under the paper's
+own configuration, at a horizon where both arms have converged, separating the
+two roles of lambda reaches the published global accuracy on every seed while
+the published coupling reaches it on none. It does not support the broader claim
+that the method has been beaten, because the paper reports one figure per cell
+without stating whether it is a final or a best value, and the comparison here
+uses a peak.
+
+The size of the gain depends on the horizon. At one hundred global rounds the
+global accuracy gain is 0.0418; at four hundred it is 0.0152. Longer training
+lets the published coupling recover much of the deficit unaided, but not all of
+it. The correction therefore buys both faster convergence and a better converged
+model, and the first effect is the larger of the two.
+
 ## Variance
 
 The most consistent effect is not the mean. Across-seed standard deviation in
