@@ -392,6 +392,35 @@ of correcting a coupled parameter is harder to sustain at the top of this range
 than at the bottom, and the write-up should choose its operating point
 deliberately rather than quoting the best cell.
 
+## 8c. What the confusion matrix shows that macro F1 does not
+
+CICIDS2017, global model, seed 0, exp 2700 and 2701, lambda_team 1.5.
+
+| | Classes with any true-positive rate | Attack classes sent entirely to BENIGN |
+|---|---|---|
+| PerMFL | 2 of 9: BENIGN 0.86, DDoS 0.69 | 3 of 8 |
+| Fine Tuned | 3 of 9: BENIGN 1.00, Bot 0.39, DDoS 0.68 | 5 of 8 |
+
+Fine Tuned wins on macro F1 and the metric is not misleading: it recovers Bot,
+holds DDoS and takes BENIGN from 0.86 to 1.00.
+
+It also sends more attack classes wholly to BENIGN, five against three. PerMFL
+spreads its errors across wrong attack labels, DoS predicted as PortScan and
+BruteForce as DDoS. Fine Tuned concentrates them on BENIGN. In an intrusion
+detection setting these failures are not equivalent: a misclassified attack
+still raises an alert, a benign classification does not. The two arms fail
+differently and the better-scoring one fails more dangerously.
+
+Neither global model is deployable at this operating point. Both miss six of
+nine classes. A macro F1 of 0.15 to 0.25 always implied this; the matrix makes
+it explicit, and reporting it is a stronger critical evaluation than reporting
+the delta alone.
+
+This is at lambda_team 1.5, where global macro F1 is 0.248. Section 8b shows
+0.534 at lambda_team 12.0. Whether the higher setting also repairs the BENIGN
+collapse or merely sharpens the same two or three classes is untested, and it
+decides whether the sweep result is operationally meaningful.
+
 ## 9. Floors and ceilings
 
 | Quantity | Metric | Value |
