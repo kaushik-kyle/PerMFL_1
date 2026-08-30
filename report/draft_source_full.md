@@ -326,7 +326,7 @@ under, and the ethical and legal position of the work.
 - **N3 Commodity hardware.**  Experiments must complete on a laptop CPU. No
     result may depend on access to a GPU cluster.
   
-- **N4 Backward compatibility.**  Every modification defaults to the shipped
+- **N4 Backward compatibility.**  Every modification defaults to the released
     behaviour, so results obtained before a change remain reproducible after
     it.
   
@@ -641,7 +641,7 @@ sizes.
 
 ## Modifications to the base implementation
 
-Four changes were made, each defaulting to the shipped behaviour.
+Four changes were made, each defaulting to the released behaviour.
 
 ![Component structure of the PerMFL path. The clustering module is engaged only under group division 3.](figures/fig_components.png)
 
@@ -941,7 +941,7 @@ the 0.111 a uniform random classifier achieves, is consistent with a model that
 has not left its starting point.
 
 The two roles want opposite values. Personalisation wants $\lambda$ small; a
-functional global model wants it comparable to $\gamma$. The shipped
+functional global model wants it comparable to $\gamma$. The published
 parameterisation forces a choice.
 
 ## Decoupling the two roles
@@ -955,7 +955,7 @@ On CICIDS2017 with attack-domain partitioning, benign traffic thinned to
 twenty-five per cent of the training split, and evaluation on unseen classes,
 across five paired seeds:
 
-| metric | shipped | decoupled | difference | paired t |
+| metric | PerMFL | Fine Tuned | difference | paired t |
 |---|---|---|---|---|
 | Personal macro F1 | 0.2809 pm 0.0017 | 0.3154 pm 0.0044 | +0.0346 | 21.25 |
 | Personal accuracy | 0.7842 pm 0.0062 | 0.8161 pm 0.0042 | +0.0320 | 10.61 |
@@ -963,8 +963,8 @@ across five paired seeds:
 | Global accuracy | 0.5412 pm 0.1885 | 0.8487 pm 0.0041 | +0.3075 | 3.60 |
 
 All four exceed the critical value of 2.776 and win on every seed. The floors
-are 0.8171 accuracy and 0.0999 macro F1. The shipped global model sits below the
-accuracy floor; the decoupled one sits above it.
+are 0.8171 accuracy and 0.0999 macro F1. The PerMFL global model sits below the
+accuracy floor; the Fine Tuned one sits above it.
 
 ![Confusion matrices for the global model on EMNIST-10 at 40 devices, row normalised. The largest single improvement is the digit five predicted as three.](figures/fig_confusion_emnist.png)
 
@@ -1029,7 +1029,7 @@ on TON-IoT under host partitioning, and from 0.0619 to 0.0063 on NSL-KDD. Two to
 three orders of magnitude, and it holds in the one configuration where the mean
 regressed.
 
-The shipped global model varies between roughly 0.35 and 0.73 depending on
+The PerMFL global model varies between roughly 0.35 and 0.73 depending on
 initialisation. For a security product that is arguably the more consequential
 finding: an unpredictable detector cannot be operated against a threshold.
 
@@ -1065,16 +1065,16 @@ the average of the team's members, and an average of divergent members carries
 little usable signal. When members agree, the same term carries a great deal.
 The correction lets the model use information it already had.
 
-At the least skewed CICIDS setting the decoupled configuration reaches 0.8432
+At the least skewed CICIDS setting the Fine Tuned configuration reaches 0.8432
 personalised and 0.8546 global macro F1 against a ceiling of 1.0, compared with
-0.5176 and 0.1497 for the shipped configuration.
+0.5176 and 0.1497 for the PerMFL configuration.
 
 ### A regression
 
 One configuration goes the other way. Under attack-domain partitioning on
 TON-IoT, at the highest heterogeneity measured anywhere in the study, the global
 macro F1 falls from 0.0917 to 0.0403, $t = -6.21$, losing on all five seeds. The
-decoupled global accuracy is 0.2369 with a standard deviation of zero, which is
+Fine Tuned global accuracy is 0.2369 with a standard deviation of zero, which is
 exactly the majority-class rate: the model collapsed to predicting normal
 traffic.
 
@@ -1097,7 +1097,7 @@ nothing to a host with no local data or one that has not yet seen a given attack
 The honest conclusion is that federated personalisation does not pay on this
 data, and that the value of the method lies in its global model. That makes the
 finding in Section~(see above) more consequential rather than
-less: the shipped parameterisation cripples precisely the component that
+less: the published parameterisation cripples precisely the component that
 justifies federating.
 
 ## Critical evaluation
@@ -1120,7 +1120,7 @@ is made. Runs completed in minutes on one CPU core where a mixture-of-experts
 implementation required hours on a GPU, but the client counts, datasets and
 software stacks differ, so that observation is structural rather than measured.
 
-The baselines shipped with the base implementation were not run on the intrusion
+The baselines released with the base implementation were not run on the intrusion
 detection data. Only the method under test carries the metric instrumentation
 this study requires, and extending it to the others was not completed. The
 consequence is that the results position PerMFL against its own configurations
@@ -1239,12 +1239,12 @@ operational sources.
 
 ### Completing the comparison
 
-Instrumenting the shipped baselines with the same metrics and running them on
+Instrumenting the released baselines with the same metrics and running them on
 the same partitions would place the corrected method in context. This is the
 most valuable remaining work and it needs no new ideas, only the same
 instrumentation applied to four more server classes.
 
-### Tuning the decoupled weight
+### Tuning the separated weight
 
 The team weight's optimum is dataset dependent: 1.5 on CICIDS2017 against 3.0
 on NSL-KDD. A principled rule relating it to the heterogeneity measure, rather
