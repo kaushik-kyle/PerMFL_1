@@ -9,6 +9,8 @@
 | [defects.md](defects.md) | twenty-one defects in the released implementation, each with a verified current file:line and a fixed / worked-around / open status |
 | [run-book.md](run-book.md) | archived working log from `wip/paper-config`: environment setup, the certificate workaround, the run matrix, compute expectations |
 | [run-queue.md](run-queue.md) | archived experiment queue: the local-steps sweep with wall-clock, the team-size constraint analysis, four resolved blockers |
+| [backlog.md](backlog.md) | runs not yet done, in four tiers, with what each one buys and a rough cost |
+| [structure-mapping.md](structure-mapping.md) | the draft's eight chapters against the handbook's six, with the mapping and a recommendation |
 | [comparison.md](comparison.md) | the paper's Tables 1, 2 and 3 verbatim, the paper's stated setup, and our run inventory beside them |
 
 ## Orientation
@@ -25,7 +27,8 @@ published defaults it is 3.3 per cent, which leaves the team tier inert.
 Separating the two roles is the change under test.
 
 Start with [code-flow.md](code-flow.md) section 2 for the equations, then
-[results.md](results.md) sections 2 and 4.
+[results.md](results.md) sections 2, 4 and 6b. Section 6b is the strongest
+result: the comparison at the paper's own stated configuration.
 
 ## Reproducing a run
 
