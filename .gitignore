@@ -15,3 +15,7 @@ report/*.bbl
 report/*.blg
 report/*.out
 report/*.toc
+/docs/
+
+.venv-figs/
+logs/
