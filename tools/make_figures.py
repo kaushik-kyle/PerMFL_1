@@ -1,6 +1,6 @@
 """Convergence figures from results/*.h5. Run with .venv-figs/bin/python."""
 import matplotlib; matplotlib.use("Agg")
-import matplotlib.pyplot as plt, h5py, glob, numpy as np, os, sys
+import matplotlib.pyplot as plt, h5py, glob, numpy as np, os, sys, re
 plt.rcParams.update({"font.family":"serif","font.size":9,"axes.grid":True,
     "grid.alpha":0.3,"grid.linewidth":0.4,"axes.spines.top":False,
     "axes.spines.right":False,"figure.dpi":300,"savefig.bbox":"tight"})
@@ -94,6 +94,34 @@ def confusion(ds, pair, classes, fname, title):
     fig.savefig(f"{OUT}/{fname}"); plt.close(fig)
     print(f"  wrote {fname}")
 
+def clustering_ari():
+    """Per-round agreement between derived teams and the loader's day-domains.
+    Parsed from B7 logs, since ARI is printed and not persisted."""
+    import glob as _g
+    series={}
+    for f in sorted(_g.glob("logs/B7/*.log")):
+        lt=re.search(r'_lt([0-9.]+)_seed(\d+)', f)
+        if not lt: continue
+        vals=[float(v) for v in re.findall(r'ARI=([0-9.]+)', open(f, errors="ignore").read())]
+        if vals: series.setdefault(lt.group(1), []).append(vals)
+    if not series:
+        print("  SKIP fig_clustering_ari.png: no B7 logs with ARI"); return
+    fig,ax=plt.subplots(figsize=(6.4,3.0))
+    for lt in sorted(series, key=float):
+        runs=series[lt]; L=min(len(r) for r in runs)
+        a=np.array([r[:L] for r in runs])
+        ax.plot(np.arange(1,L+1), a.mean(0), lw=1.1, label=f"$\\lambda_{{team}}$ = {lt}")
+    ax.axhline(0, color="#999", lw=0.6, ls="--")
+    ax.set_xlabel("Global round"); ax.set_ylabel("Adjusted Rand index\nagainst day-domains")
+    ax.set_ylim(-0.05, 1.0)
+    ax.legend(frameon=False, fontsize=7, ncol=2)
+    ax.set_title("Derived teams versus true domains", fontsize=9)
+    fig.tight_layout(); fig.savefig(f"{OUT}/fig_clustering_ari.png"); plt.close(fig)
+    n=sum(len(v) for v in series.values())
+    allv=np.concatenate([np.array(r) for v in series.values() for r in v])
+    print(f"  wrote fig_clustering_ari.png ({n} runs, ARI mean {allv.mean():.3f} "
+          f"min {allv.min():.3f} max {allv.max():.3f})")
+
 if __name__=="__main__":
     print("figures:")
     convergence("per_macro_f1","Personalised macro F1 (higher better)","fig_convergence_pm.png")
@@ -102,6 +130,7 @@ if __name__=="__main__":
     sweep_curve()
     confusion("Emnist10",(2200,2201),[str(i) for i in range(10)],
               "fig_confusion_emnist.png","EMNIST-10, 40 devices, seed 0")
-    confusion("Cicids",(2500,2501),
+    clustering_ari()
+    confusion("Cicids",(2700,2701),
               ["BENIGN","Bot","BruteForce","DDoS","DoS","Infiltration","PortScan","WebAttack","Heartbleed"],
               "fig_confusion_cicids.png","CICIDS2017, seed 0")
