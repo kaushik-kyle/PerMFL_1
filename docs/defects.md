@@ -37,7 +37,7 @@ reported.
 | 20 | `main.py` argparse | `--selected_users` is defined and never passed to `main()`. `--numusers` is the live flag | open |
 | 21 | `FLAlgorithms/servers/serverPerMFL.py:454,477` | neither `lamda_team` nor `weighted_agg` is written to the h5 or the filename. A PerMFL and a Split-λ run at the same lambda are indistinguishable in every recorded field | open |
 
-| 22 | `main.py` defaults, `clustering/team_former.py:53` | `--eps_hi` defaults to 0.0 and `--eps_lo` to infinity, so the CFMD-i trigger `mx > eps_hi and mean < eps_lo` reduces to `mx > 0 and mean < inf`, which is true whenever any two clients differ. The adaptive gate is unconditionally open and reclustering fires every round. Ours, not upstream. Tested with real thresholds in batch C1: gating works mechanically and changes no metric, see results.md section 8e | tested |
+| 22 | `main.py` defaults, `clustering/team_former.py:53` | `--eps_hi` defaults to 0.0 and `--eps_lo` to infinity, so the CFMD-i trigger `mx > eps_hi and mean < eps_lo` reduces to `mx > 0 and mean < inf`, which is true whenever any two clients differ. The adaptive gate is unconditionally open and reclustering fires every round. Ours, not upstream. Tested with real thresholds in batch C1: gating works mechanically and changes no metric, see results.md section 8d | tested |
 
 | 23 | `FLAlgorithms/users/userPerMFL.py:17-22` | the loss is unweighted `NLLLoss` for every IDS configuration, while the reported metric is macro F1. On an 81.7 per cent benign corpus the objective optimises something the metric does not measure. Not a defect in the released code, a mismatch between it and this project's evaluation. Addressed behind `CLASS_WEIGHTS=1`, off by default | open |
 

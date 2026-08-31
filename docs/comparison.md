@@ -119,11 +119,11 @@ two labels per device. **This is half the device count the paper states.**
 | | Quantity | Baseline | Comparator | Difference |
 |---|---|---|---|---|
 | Reproduction | PM accuracy, T=400 | ours 96.45 | published 96.49 | **0.04 pp short** |
-| Splitting λ | GM macro F1, T=100 | PerMFL 0.8513 | Split-λ 0.8959 | **+4.46 pp** |
-| Splitting λ | GM accuracy, T=100 | PerMFL 86.19 | Split-λ 90.29 | **+4.10 pp** |
-| Splitting λ | PM accuracy, T=100 | PerMFL 98.41 | Split-λ 98.41 | -0.01 pp |
+| Split-λ | GM macro F1, T=100 | PerMFL 0.8513 | Split-λ 0.8959 | **+4.46 pp** |
+| Split-λ | GM accuracy, T=100 | PerMFL 86.19 | Split-λ 90.29 | **+4.10 pp** |
+| Split-λ | PM accuracy, T=100 | PerMFL 98.41 | Split-λ 98.41 | -0.01 pp |
 
-The reproduction gap and the fine-tuning gain are not the same size. They differ
+The reproduction gap and the Split-λ gain are not the same size. They differ
 by a factor of about 110, and they are different quantities on different tiers.
 
 ## Table H. Our global model against the published global model, EMNIST-10 MCLR
@@ -136,6 +136,6 @@ by a factor of about 110, and they are different quantities on different tiers.
 | Ours, fixed, T=400 (exp 3) | 90.45 | -1.23 |
 | Ours, defect present, T=400 (exp 2) | 87.84 | -3.84 |
 
-Splitting λ recovers about three quarters of the shortfall to the published
+Split-λ recovers about three quarters of the shortfall to the published
 global-model figure, at a quarter of the published horizon and half the
 published device count.

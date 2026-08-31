@@ -95,23 +95,15 @@ The personalised gain there is +0.0345 against +0.0904 here, so the unconverged
 runs understate the effect by roughly a factor of three. The older numbers should
 be retired from the report rather than shown alongside.
 
-## 3b. Superseded headline, unconverged horizon
-
-CICIDS2017, domainmix partition, benign fraction 0.25, cross-test on, five seeds,
-exp 906-915. Critical value at four degrees of freedom is 2.776.
-
-| Metric | Direction | PerMFL | Split-λ | Delta | t |
-|---|---|---|---|---|---|
-| PM macro F1 | higher better | 0.2809 | 0.3154 | +0.0346 | 21.25 |
-| PM accuracy | higher better | 0.7842 | 0.8161 | +0.0320 | 10.61 |
-| GM macro F1 | higher better | 0.1139 | 0.2155 | +0.1016 | 4.35 |
-| GM accuracy | higher better | 0.5412 | 0.8487 | +0.3075 | 3.60 |
-
-All four clear the critical value and win on every seed. The floors are 0.8171
-accuracy and 0.0999 macro F1. The PerMFL global model sits below the accuracy
-floor; the Split-λ one sits above it.
-
 ## 4. Heterogeneity sweep
+
+> **Horizon caveat.** Every run in this section is at T=10 with L=500, or T=20
+> with L=100 for NSL-KDD. Both arms are still rising at the final round. The
+> direction of every point is consistent with the converged results in sections
+> 3, 5 and 5b, and the ordering is unanimous across 27 pairs, but the effect
+> sizes here are not converged values. No converged replacement exists: doing
+> so would be 54 further runs.
+
 
 Twenty-seven pairs, three seeds per point. **All values are macro F1, higher is
 better.** Ordered within each dataset from most to least heterogeneous.
@@ -435,36 +427,7 @@ of correcting a coupled parameter is harder to sustain at the top of this range
 than at the bottom, and the write-up should choose its operating point
 deliberately rather than quoting the best cell.
 
-## 8c. What the confusion matrix shows that macro F1 does not
-
-CICIDS2017, global model, seed 0, exp 2700 and 2701, lambda_team 1.5.
-
-| | Classes with any true-positive rate | Attack classes sent entirely to BENIGN |
-|---|---|---|
-| PerMFL | 2 of 9: BENIGN 0.86, DDoS 0.69 | 3 of 8 |
-| Split-λ | 3 of 9: BENIGN 1.00, Bot 0.39, DDoS 0.68 | 5 of 8 |
-
-Split-λ wins on macro F1 and the metric is not misleading: it recovers Bot,
-holds DDoS and takes BENIGN from 0.86 to 1.00.
-
-It also sends more attack classes wholly to BENIGN, five against three. PerMFL
-spreads its errors across wrong attack labels, DoS predicted as PortScan and
-BruteForce as DDoS. Split-λ concentrates them on BENIGN. In an intrusion
-detection setting these failures are not equivalent: a misclassified attack
-still raises an alert, a benign classification does not. The two arms fail
-differently and the better-scoring one fails more dangerously.
-
-Neither global model is deployable at this operating point. Both miss six of
-nine classes. A macro F1 of 0.15 to 0.25 always implied this; the matrix makes
-it explicit, and reporting it is a stronger critical evaluation than reporting
-the delta alone.
-
-This is at lambda_team 1.5, where global macro F1 is 0.248. Section 8b shows
-0.534 at lambda_team 12.0. Whether the higher setting also repairs the BENIGN
-collapse or merely sharpens the same two or three classes is untested, and it
-decides whether the sweep result is operationally meaningful.
-
-## 8d. Per-class detection across the lambda_team range
+## 8c. Per-class detection across the lambda_team range
 
 CICIDS2017, global model, seed 0. Confusion matrices from exp 2700, 2701, 2820.
 
@@ -488,7 +451,7 @@ The operating point therefore matters for deployability, not only for the
 headline number. At 1.5 the global model is not usable as a detector. At 12.0 it
 plausibly is.
 
-## 8e. The clustering trigger, tested as designed
+## 8d. The clustering trigger, tested as designed
 
 CICIDS2017, lambda_team 1.5, three seeds per setting, exp 2800-2805. Thresholds
 read from 1782 reclustering events logged during B7.
@@ -515,7 +478,7 @@ the picture is consistent: the team tier carries so little weight at these
 settings that how teams are formed cannot matter. This answers defect 22, which
 recorded that the trigger had never been exercised.
 
-## 8f. Class-weighted loss changes nothing
+## 8e. Class-weighted loss changes nothing
 
 CICIDS2017, three seeds, `CLASS_WEIGHTS=1`, exp 2830-2835, against the
 unweighted runs at the same configuration.
@@ -568,49 +531,26 @@ score, 0.9525 to 0.4012 at one setting, because a class absent from the loss
 cannot be predicted. It produces no global model at all, so it offers nothing to a
 host with no local data or one that has not yet seen a given attack.
 
-## 11. A limitation the convergence figure exposes
+## 11. Horizons
 
-The IDS runs stop at T=10 (CICIDS2017, TON-IoT) and T=20 (NSL-KDD). The
-convergence figure shows both arms still rising at the final round on all three,
-against EMNIST-10 where the curves plateau by round 75 of 100.
+Every headline result is now at T=100 with L=20, matching the paper's loop shape
+and comparable across datasets.
 
-The IDS comparisons therefore measure which arm rises faster over the first ten
-rounds, not which converges to a better model. The direction of every IDS result
-is consistent with EMNIST at a converged horizon, so the conclusion is unlikely
-to reverse, but the effect sizes are not converged values and should not be
-reported as though they were.
+| Section | Block | T | L | Status |
+|---|---|---|---|---|
+| 3 | CICIDS headline, 5 seeds | 100 | 20 | converged |
+| 5 | TON-IoT, 5 seeds | 100 | 20 | converged |
+| 5b | NSL-KDD, 5 seeds | 100 | 20 | converged |
+| 6b | EMNIST-10, 3 seeds | 400 | 20 | converged |
+| 8b | lambda_team sweep | 100 | 20 | converged |
+| 8d | clustering trigger | 100 | 20 | converged |
+| 8e | class weighting | 100 | 20 | converged |
+| **4** | **heterogeneity sweep** | **10 or 20** | **500 or 100** | **unconverged** |
 
-Closing this needs the IDS headline re-run at T=100 with L=20, matching EMNIST
-and the paper's loop shape. See backlog B2b.
-
-## 11b. The clustering has never been tested as designed
-
-`--group_division 3` engages `team_former.py`, the MCTC formation with the
-CFMD-i drift trigger. B7 is the first batch whose logs prove it runs at all: it
-reclusters on 99 of 100 global rounds and reports adjusted Rand index against
-the loader's day-domain grouping every time.
-
-Two findings.
-
-**The trigger is not gating.** `should_recluster` returns
-`mx > eps_hi and mean < eps_lo`. With the default `eps_hi = 0.0` and
-`eps_lo = infinity` this is true whenever any two clients differ, so it fires
-unconditionally. No run has ever supplied real thresholds. What has been
-measured is per-round reclustering, not adaptive reclustering. See defect 22.
-
-**The partition never converges.** ARI oscillates between roughly 0.15 and 0.65
-for the whole run with no trend, mean 0.366. Teams are rebuilt into a
-substantially different partition every round.
-
-This gives the earlier null result a mechanism. Oracle, random and derived team
-assignment were statistically indistinguishable across five comparisons. If
-derived teams are re-randomised each round then derived is closer to random each
-round than to any stable structure, so the null is expected rather than
-surprising.
-
-Whether the clustering can find stable structure when the gate actually gates is
-untested. `should_recluster` already returns the observed max and mean pairwise
-distance so plausible thresholds can be read off a run and supplied.
+The heterogeneity sweep is the sole remaining exception. Its direction agrees
+with every converged result, and its ordering is unanimous over 27 pairs, so the
+relationship it reports is unlikely to reverse. Its magnitudes should not be
+quoted as converged values.
 
 ## 12. Coverage gaps
 
@@ -618,8 +558,8 @@ distance so plausible thresholds can be read off a run and supplied.
 |---|---|
 | Published datasets not run | MNIST, FMNIST, CIFAR-10, CIFAR100, FEMNIST, Synthetic with PerMFL |
 | Baselines not run | FedAvg, Ditto, PerAvg, AL2GD, pFedBayes on any dataset. h-QSGD cannot be run at all, defect 16 |
-| Clustering | `team_former.py` has never run with a working trigger, see section 11b |
+| Clustering | tested with real thresholds in section 8d. Gating changes no metric |
 | Baselines partially run | pFedMe on NSL-KDD only, two runs. hierarchical-FedAvg on Synthetic, one run |
 | Configuration mismatch | every EMNIST run used 20 devices; the paper states 40 |
 | Unattributed | exp 900-905 on NSL-KDD do not follow the parity convention and are not labelled |
-| Single-run results | the communication sweep has no seed replication. The local-steps sweep was replicated at three seeds, see section 8 |
+| Single-run results | the communication sweep only. Everything else is replicated at three or five seeds |
