@@ -69,6 +69,7 @@ C1   clustering trigger with real thresholds, 3 seeds x 2 gates  6 runs  ~20 min
 C3   confusion matrices at lamda_team 12.0, 2 seeds               2 runs  ~7 min
 C4   TON-IoT and NSL-KDD at converged horizon, both arms x5 seeds 20 runs  ~40 min at PAR=3
 C7   class-weighted loss, both arms x3 seeds                      6 runs  ~20 min
+C8   lambda_team 12.0 on all three IDS datasets                  12 runs  ~10 min at PAR=3
 ALL  B2 B2L B3 B7 B1 in sequence
 B2   EMNIST-10 paper config, 40 devices T=100, both arms x3 seeds   6 runs  ~27 min (measured 272s/run)
 B2L  same at T=400                                                  6 runs  ~110 min (4x B2)
@@ -125,6 +126,19 @@ C4)  # TON-IoT and NSL-KDD at a converged horizon, T=100 L=20.
     emit $((i+1)) "ton_split_seed$s"  ${=TI_BASE} --lamda_team 1.5 --seed $s
     i=$((i+2))
   done ;;
+C8)  # lambda_team 12.0 across all three IDS datasets, to match the operating
+     # point the report leads with. PerMFL baselines already exist at
+     # lambda_team 0.05 for all three (exp 2700-2708, 2900-2908, 2920-2928).
+  emit 2840 "cicids_lt12_seed3" ${=CI_BASE} --lamda_team 12.0 --seed 3
+  emit 2841 "cicids_lt12_seed4" ${=CI_BASE} --lamda_team 12.0 --seed 4
+  i=2940
+  for s in 0 1 2 3 4; do
+    emit $((i+s)) "nsl_lt12_seed$s" ${=NK_BASE} --lamda_team 12.0 --seed $s
+  done
+  i=2950
+  for s in 0 1 2 3 4; do
+    emit $((i+s)) "ton_lt12_seed$s" ${=TI_BASE} --lamda_team 12.0 --seed $s
+  done ;;
 C7)  # class-weighted loss. CLASS_WEIGHTS=1 weights each class by inverse
      # frequency in the client's own labels. Off by default elsewhere.
   i=2830
@@ -143,7 +157,7 @@ B7)  # lamda_team sweep at one heterogeneity setting
     emit $i "lt${LT}_seed$s" ${=CI_BASE} --lamda_team $LT --seed $s; i=$((i+1))
   done; done ;;
 *)
-  print "usage: tools/run.sh {list|B1|B2|B2L|B3|B7|C1|C3|C4|C7|ALL} [--dry]"
+  print "usage: tools/run.sh {list|B1|B2|B2L|B3|B7|C1|C3|C4|C7|C8|ALL} [--dry]"
   print "       PAR=n to set concurrency (default 3)"
   exit 1 ;;
 esac
