@@ -957,10 +957,11 @@ across five paired seeds:
 
 | metric | PerMFL | Split-λ | difference | paired t |
 |---|---|---|---|---|
-| Personal macro F1 | 0.2809 pm 0.0017 | 0.3154 pm 0.0044 | +0.0346 | 21.25 |
-| Personal accuracy | 0.7842 pm 0.0062 | 0.8161 pm 0.0042 | +0.0320 | 10.61 |
-| Global macro F1 | 0.1139 pm 0.0346 | 0.2155 pm 0.0187 | +0.1016 | 4.35 |
-| Global accuracy | 0.5412 pm 0.1885 | 0.8487 pm 0.0041 | +0.3075 | 3.60 |
+| Personal macro F1 | 0.4182 pm 0.0364 | 0.5086 pm 0.0168 | +0.0904 | 4.29 |
+| Personal accuracy | 0.8390 pm 0.0081 | 0.9041 pm 0.0107 | +0.0651 | 9.28 |
+| Global macro F1 | 0.1165 pm 0.0178 | 0.2457 pm 0.0064 | +0.1292 | 15.68 |
+| Global accuracy | 0.7545 pm 0.0497 | 0.8626 pm 0.0013 | +0.1081 | 4.76 |
+| Global macro recall | 0.1604 pm 0.0370 | 0.2269 pm 0.0043 | +0.0664 | 4.07 |
 
 All four exceed the critical value of 2.776 and win on every seed. The floors
 are 0.8171 accuracy and 0.0999 macro F1. The PerMFL global model sits below the
@@ -1021,6 +1022,66 @@ lets the published coupling recover much of the deficit unaided, but not all of
 it. The correction therefore buys both faster convergence and a better converged
 model, and the first effect is the larger of the two.
 
+## Where the operating point sits
+
+The comparison above uses $\lambda_{team} = 1.5$, chosen before any sweep. A
+later sweep over six values shows that choice was conservative.
+
+| $\lambda_{team}$ | ratio to $\gamma$ | personal macro F1 | global macro F1 | global FPR |
+|---|---|---|---|---|
+| 0.5 | 0.3 | 0.4168 | 0.1529 | 0.0887 |
+| 1.0 | 0.7 | 0.4383 | 0.2169 | 0.0816 |
+| 1.5 | 1.0 | 0.5202 | 0.2480 | 0.0788 |
+| 3.0 | 2.0 | 0.5818 | 0.2603 | 0.0757 |
+| 6.0 | 4.0 | 0.6480 | 0.4046 | 0.0642 |
+| 12.0 | 8.0 | 0.8440 | 0.5341 | 0.0475 |
+
+Monotone on both tiers and on false-positive rate, with no turnover. The
+stability condition permits values below 31.8, so the sweep exhausted its range
+rather than finding an optimum.
+
+The operating point matters for more than the headline figure. Per-class
+detection on the global model, at three settings:
+
+| configuration | classes detected | attack classes sent entirely to benign |
+|---|---|---|
+| PerMFL | 2 of 9 | 3 of 8 |
+| Split-λ, $\lambda_{team} = 1.5$ | 3 of 9 | 5 of 8 |
+| Split-λ, $\lambda_{team} = 12.0$ | 7 of 9 | 1 of 8 |
+
+At 1.5 the global model is not usable as a detector, and its errors concentrate
+on the benign class, which is the more dangerous failure in this setting because
+a misclassified attack still raises an alert while a benign classification does
+not. At 12.0 four further classes gain detection and that failure mode largely
+disappears.
+
+Against this, at 12.0 the team model is weighted eight times more toward its own
+members than toward the global model, which is closer to a per-team federated
+average with a weak global anchor than to the method as published. The results
+below use 1.5 throughout, and the higher setting is reported as evidence that
+the correction is not exhausted rather than as the configuration under test.
+
+## Two mechanisms that did not help
+
+Two changes were implemented and measured, and neither moved a metric. Both are
+recorded because a negative result narrows the space of explanations.
+
+The drift-triggered reclustering was run with thresholds read from 1782 logged
+reclustering events rather than chosen a priori. Gating reduced reclustering from
+99 rounds in 100 to roughly 25 and halved the variance of cluster agreement, and
+changed no metric on either tier by more than one standard deviation. Cluster
+agreement with the true partition stayed near 0.32 at every setting, so the
+clustering never recovers the domain structure it is intended to find.
+
+A class-weighted loss was implemented on the hypothesis that the objective and
+the reported metric disagree, since the loss is unweighted while macro F1 weights
+every class equally on a corpus that is 81.7 per cent benign. Weighting each
+class by the inverse of its frequency in a client's own labels changed nothing on
+either arm and left per-class detection identical. The likely reason, untested,
+is that weights computed within a client are close to uniform when that client
+holds few classes, while the imbalance the weights were meant to counter exists
+across clients rather than inside any one of them.
+
 ## Variance
 
 The most consistent effect is not the mean. Across-seed standard deviation in
@@ -1071,15 +1132,22 @@ personalised and 0.8546 global macro F1 against a ceiling of 1.0, compared with
 
 ### A regression
 
-One configuration goes the other way. Under attack-domain partitioning on
-TON-IoT, at the highest heterogeneity measured anywhere in the study, the global
-macro F1 falls from 0.0917 to 0.0403, $t = -6.21$, losing on all five seeds. The
-Split-λ global accuracy is 0.2369 with a standard deviation of zero, which is
-exactly the majority-class rate: the model collapsed to predicting normal
-traffic.
+One configuration appeared to go the other way, and the reason it did not is
+instructive. Under attack-domain partitioning on TON-IoT, at ten global rounds
+with five hundred local steps, global macro F1 fell from 0.0917 to 0.0403,
+$t = -6.21$, losing on all five seeds, with Split-λ global accuracy pinned at
+0.2369, exactly the majority-class rate.
 
-This bounds the claim. Making the global model listen harder to strongly
-specialised teams can destroy it.
+Re-running the same comparison at one hundred global rounds with twenty local
+steps, the shape used everywhere else in this study and by the original paper,
+reverses it completely: global macro F1 rises from 0.1007 to 0.1574,
+$t = 4.14$, winning on all five seeds.
+
+The apparent regression was an artefact of measuring both models before either
+had converged. It is reported here rather than removed because the earlier
+configuration was a legitimate reading of the loader defaults at the time, and
+because the episode establishes that horizon choice can invert a result's sign
+on this data.
 
 ## Local training as a baseline
 
