@@ -1,3 +1,5 @@
+import os
+import torch
 import torch.nn as nn
 from FLAlgorithms.optimizers.fedoptimizer import pFedMeOptimizer
 from FLAlgorithms.users.userbase import User
@@ -21,6 +23,25 @@ class UserPerMFL(User):
         else:
             self.loss = nn.NLLLoss()
             # self.loss = nn.CrossEntropyLoss()
+
+        # Class-weighted loss, off by default so earlier runs stay comparable.
+        # CLASS_WEIGHTS=1 sets each class weight to the inverse of its frequency
+        # in this client's own training labels, normalised to mean one. Classes
+        # absent from the client get weight zero, which is what NLLLoss and
+        # CrossEntropyLoss both expect for an unseen class.
+        #
+        # Rationale: the loss optimises unweighted accuracy on an 81.7 per cent
+        # benign corpus while macro F1 weights every class equally. The
+        # objective and the reported metric disagree, which is a candidate
+        # explanation for the global model collapsing to BENIGN.
+        if int(os.environ.get("CLASS_WEIGHTS", "0")):
+            n_cls = self.model(next(iter(self.trainloaderfull))[0][:1]).shape[1]
+            counts = torch.zeros(n_cls)
+            for _, y in self.trainloaderfull:
+                counts += torch.bincount(y.view(-1).long(), minlength=n_cls).float()
+            w = torch.where(counts > 0, counts.sum() / (counts * (counts > 0).sum()),
+                            torch.zeros_like(counts))
+            self.loss = type(self.loss)(weight=w.to(device))
 
         # self.K = K
         self.alpha = alpha

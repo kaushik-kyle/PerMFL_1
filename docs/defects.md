@@ -39,6 +39,8 @@ reported.
 
 | 22 | `main.py` defaults, `clustering/team_former.py:53` | `--eps_hi` defaults to 0.0 and `--eps_lo` to infinity, so the CFMD-i trigger `mx > eps_hi and mean < eps_lo` reduces to `mx > 0 and mean < inf`, which is true whenever any two clients differ. The adaptive gate is unconditionally open and reclustering fires every round. Ours, not upstream | open |
 
+| 23 | `FLAlgorithms/users/userPerMFL.py:17-22` | the loss is unweighted `NLLLoss` for every IDS configuration, while the reported metric is macro F1. On an 81.7 per cent benign corpus the objective optimises something the metric does not measure. Not a defect in the released code, a mismatch between it and this project's evaluation. Addressed behind `CLASS_WEIGHTS=1`, off by default | open |
+
 ## Why 5 to 9 were worked around rather than patched
 
 Defects 5, 6, 7 and 8 all sit on the `Emnist` path and interact. Patching them in

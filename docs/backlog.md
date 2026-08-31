@@ -44,12 +44,13 @@ Ordered by what each buys. None is required for the current claims.
 | C4 | TON-IoT and NSL-KDD at T=100, L=20 | 20 runs, ~70 min | Those two datasets are still on the unconverged T=10 and T=20 horizons |
 | C5 | Weighted aggregation, `--weighted_agg 1` | 6 runs, ~20 min | Implemented and never swept |
 | C6 | Communication sweep replicated | 9 runs, ~30 min | The last remaining single-run result |
+| C7 | Class-weighted loss, `CLASS_WEIGHTS=1` | 6 runs, ~20 min | The loss is unweighted `NLLLoss` while the metric is macro F1, so the objective and the reported measure disagree on an 81.7 per cent benign corpus. Candidate explanation for the global model collapsing to BENIGN. Implemented and flag-gated; off by default so the 52 completed runs stay comparable |
 
-Total if all six run: 49 runs, roughly three hours.
+Total if all seven run: 55 runs, roughly three and a half hours.
 
 ## Recommendation
 
-**C1 and C3 are worth running; the rest are optional.**
+**C1, C3 and C7 are worth running; the rest are optional.**
 
 C1 because the report currently describes drift-triggered reclustering as
 delivered, and no run has exercised the trigger. That is a claim the evidence
@@ -58,6 +59,11 @@ does not yet support either way.
 C3 because the strongest number in the project, λ_team 12.0, has no per-class
 evidence behind it, and the confusion matrix at 1.5 showed the better-scoring
 arm failing more dangerously.
+
+C7 because it tests a specific, cheap hypothesis about why both global models
+collapse to BENIGN. If class weighting moves per-class recall it is a citable
+future-work direction; if it does not, that is equally worth recording, since it
+removes the obvious explanation and points elsewhere.
 
 Everything else is refinement. The current results already cover four datasets,
 both tiers, four metrics, five seeds on the headline, and the paper's own
