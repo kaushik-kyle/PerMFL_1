@@ -73,3 +73,43 @@ ax.text(0.5,0.985,"Component structure, PerMFL path only",fontsize=10,ha="center
 ax.text(0.02,0.005,"Blue = entry point. Dashed = active only under --group_division 3. Seven baseline algorithms omitted.",
         fontsize=6.5,color=GREY,style="italic")
 fig.savefig(f"{OUT}/fig_components.png"); plt.close(fig); print("wrote fig_components.png")
+
+# ---------------- Figure 3: model architectures ----------------
+def architectures():
+    fig,axes=plt.subplots(1,3,figsize=(10.5,4.0))
+    def stack(ax,title,layers,note):
+        ax.set_xlim(0,1); ax.set_ylim(0,1); ax.axis("off")
+        n=len(layers); top=0.90; bot=0.20; h=(top-bot)/n
+        for i,(lbl,sub,fc) in enumerate(layers):
+            y=top-(i+1)*h
+            box(ax,0.08,y+0.014,0.84,h-0.028,lbl,sub,fc=fc,fs=8)
+            if i<n-1:   # arrow points DOWN, from this box to the next
+                ax.annotate("",xy=(0.5,y-0.014),xytext=(0.5,y+0.012),
+                            arrowprops=dict(arrowstyle="-|>",lw=0.9,color=GREY))
+        ax.set_title(title,fontsize=9.5,color=INK)
+        ax.text(0.5,0.10,note,ha="center",va="top",fontsize=6.8,color=GREY,style="italic")
+    stack(axes[0],"MCLR",
+          [("input  79","one row of flow features",FILL),
+           ("Linear  79 → 9","the only trainable layer",BFILL),
+           ("log_softmax","log-probabilities, 9 classes",FILL)],
+          "720 parameters. Convex: one minimum.")
+    stack(axes[1],"DNN",
+          [("input  79","",FILL),
+           ("Linear  79 → 100","hidden layer 1",BFILL),
+           ("ReLU","negatives set to zero",FILL),
+           ("Linear  100 → 9","output layer",BFILL),
+           ("log_softmax","log-probabilities",FILL)],
+          "8,909 parameters. Non-convex.\nHIDDEN_LAYERS=2 inserts a second 100→100 pair.")
+    stack(axes[2],"CNN",
+          [("input  28 x 28","one image",FILL),
+           ("Conv + pool","local patterns",BFILL),
+           ("Conv + pool","larger patterns",BFILL),
+           ("Linear → 128 → classes","",BFILL),
+           ("log_softmax","log-probabilities",FILL)],
+          "Image datasets only. Not used on\nany intrusion dataset in this project.")
+    fig.suptitle("The three architectures, as implemented in FLAlgorithms/trainmodel/models.py",
+                 fontsize=9,color=GREY)
+    fig.tight_layout(); fig.savefig(f"{OUT}/fig_architectures_models.png"); plt.close(fig)
+    print("wrote fig_architectures_models.png")
+
+architectures()

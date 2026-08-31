@@ -23,6 +23,8 @@ slot_drain() { for p in $_pids; do wait $p 2>/dev/null; done; _pids=() }
 LOGROOT="logs/${BATCH}"
 
 EM_BASE="--algorithm PerMFL --dataset Emnist10 --model_name mclr --lamda 0.5 --gamma 1.5 --beta 0.6 --alpha 0.01 --eta 0.03 --num_team_iters 10 --local_iters 20 --num_teams 4 --p_teams 4 --num_labels 2 --group_division 0"
+NK_BASE="--algorithm PerMFL --dataset Nslkdd --model_name dnn --lamda 0.05 --gamma 1.5 --beta 0.6 --alpha 0.01 --eta 0.03 --num_global_iters 100 --num_team_iters 10 --local_iters 20 --tot_users 20 --num_teams 5 --numusers 4 --p_teams 5 --num_labels 5 --group_division 3"
+TI_BASE="--algorithm PerMFL --dataset Toniot --model_name dnn --lamda 0.05 --gamma 1.5 --beta 0.6 --alpha 0.01 --eta 0.03 --num_global_iters 100 --num_team_iters 10 --local_iters 20 --tot_users 20 --num_teams 5 --numusers 4 --p_teams 5 --num_labels 10 --group_division 3"
 CI_BASE="--algorithm PerMFL --dataset Cicids --model_name dnn --lamda 0.05 --gamma 1.5 --beta 0.6 --alpha 0.01 --eta 0.03 --num_global_iters 100 --num_team_iters 10 --local_iters 20 --tot_users 20 --num_teams 5 --numusers 4 --p_teams 5 --num_labels 8 --group_division 3"
 
 emit() {  # $1 exp  $2 log-label  $3... flags
@@ -65,6 +67,7 @@ list)
 B1   confusion matrices, CICIDS headline, both arms x5 seeds     10 runs  ~40 min
 C1   clustering trigger with real thresholds, 3 seeds x 2 gates  6 runs  ~20 min
 C3   confusion matrices at lamda_team 12.0, 2 seeds               2 runs  ~7 min
+C4   TON-IoT and NSL-KDD at converged horizon, both arms x5 seeds 20 runs  ~40 min at PAR=3
 C7   class-weighted loss, both arms x3 seeds                      6 runs  ~20 min
 ALL  B2 B2L B3 B7 B1 in sequence
 B2   EMNIST-10 paper config, 40 devices T=100, both arms x3 seeds   6 runs  ~27 min (measured 272s/run)
@@ -106,6 +109,22 @@ C3)  # confusion matrices at the top of the lamda_team sweep
   for s in 0 1; do
     emit $((2820+s)) "cm_lt12_seed$s" ${=CI_BASE} --lamda_team 12.0 --seed $s
   done ;;
+C4)  # TON-IoT and NSL-KDD at a converged horizon, T=100 L=20.
+     # Both datasets currently sit at T=10 or 20 with L=500 or 100, where the
+     # convergence figure shows both arms still rising. Matches CICIDS (B1) and
+     # EMNIST for cross-dataset comparability.
+  i=2900
+  for s in 0 1 2 3 4; do
+    emit $i     "nsl_permfl_seed$s" ${=NK_BASE} --seed $s
+    emit $((i+1)) "nsl_split_seed$s"  ${=NK_BASE} --lamda_team 1.5 --seed $s
+    i=$((i+2))
+  done
+  i=2920
+  for s in 0 1 2 3 4; do
+    emit $i     "ton_permfl_seed$s" ${=TI_BASE} --seed $s
+    emit $((i+1)) "ton_split_seed$s"  ${=TI_BASE} --lamda_team 1.5 --seed $s
+    i=$((i+2))
+  done ;;
 C7)  # class-weighted loss. CLASS_WEIGHTS=1 weights each class by inverse
      # frequency in the client's own labels. Off by default elsewhere.
   i=2830
@@ -124,7 +143,7 @@ B7)  # lamda_team sweep at one heterogeneity setting
     emit $i "lt${LT}_seed$s" ${=CI_BASE} --lamda_team $LT --seed $s; i=$((i+1))
   done; done ;;
 *)
-  print "usage: tools/run.sh {list|B1|B2|B2L|B3|B7|C1|C3|C7|ALL} [--dry]"
+  print "usage: tools/run.sh {list|B1|B2|B2L|B3|B7|C1|C3|C4|C7|ALL} [--dry]"
   print "       PAR=n to set concurrency (default 3)"
   exit 1 ;;
 esac
