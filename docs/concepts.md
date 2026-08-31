@@ -123,12 +123,130 @@ Macro F1 averages per-class F1 without weighting by class size, so a rare attack
 class counts as much as benign traffic. This is why the reported floor is 0.0999
 macro F1 against 0.8171 accuracy.
 
+## 8. The models
+
+Three architectures are reachable, selected by `--model_name`. All are small:
+the largest has under nine thousand parameters.
+
+| Name | Full name | Structure | Params (CICIDS) |
+|---|---|---|---|
+| `mclr` | Multi-class logistic regression | one linear layer, input to classes | 79x9 + 9 = 720 |
+| `dnn` | Deep neural network | linear, ReLU, linear. A second hidden layer under `HIDDEN_LAYERS=2` | 79x100 + 100x9 + 109 = 8,909 |
+| `cnn` | Convolutional neural network | two convolution layers then two linear. Image datasets only | varies |
+
+`mclr` is the paper's strongly convex setting: with a convex loss the objective
+has one minimum, which is what its convergence proof assumes. `dnn` and `cnn`
+are the non-convex setting, where the proof gives weaker guarantees.
+
+Every architecture ends the same way, and this determines the loss.
+
+## 9. Output layer and loss
+
+Each model's final operation is `log_softmax`
+([models.py:104](../FLAlgorithms/trainmodel/models.py#L104)). Two steps:
+
+- **softmax** turns the raw output numbers into a probability distribution over
+  classes: each value in [0,1], summing to one.
+- **log** takes the logarithm of those probabilities, giving log-probabilities,
+  which are numerically stabler to work with than probabilities.
+
+So the model outputs **log-probabilities**, one per class.
+
+The loss must match that output.
+
+| Loss | Expects | Applies softmax itself |
+|---|---|---|
+| `NLLLoss` (negative log likelihood) | log-probabilities | no |
+| `CrossEntropyLoss` | raw scores, called logits | yes |
+
+Since the models already apply `log_softmax`, the correct pairing is
+**`NLLLoss`**. Using `CrossEntropyLoss` on the same output would apply softmax a
+second time.
+
+Both compute the same quantity when correctly paired: the negative log of the
+probability the model assigned to the true class. A confident correct prediction
+gives a small loss; a confident wrong one gives a large loss.
+
+### Which loss each configuration actually gets
+
+The selection is at
+[userPerMFL.py:16-22](../FLAlgorithms/users/userPerMFL.py#L16).
+
+| Condition | Loss |
+|---|---|
+| `model_name == "Mclr_CrossEntropy"` | `CrossEntropyLoss` |
+| `model_name == "cnn"` and dataset is FMnist or Cifar100 | `CrossEntropyLoss` |
+| everything else | `NLLLoss` |
+
+**Every intrusion detection run in this project uses `NLLLoss`**, because `dnn`
+and `mclr` fall to the last row.
+
+The first row is unreachable: `Mclr_CrossEntropy` is not among the values
+`--model_name` accepts. See defect 24.
+
+### The mismatch this project found
+
+`NLLLoss` treats every sample equally. On a corpus that is 81.7 per cent benign,
+the loss is dominated by benign samples, so training optimises something close
+to plain accuracy. The reported metric is macro F1, which weights every class
+equally regardless of size.
+
+The objective and the measure therefore disagree. `CLASS_WEIGHTS=1` weights each
+class by the inverse of its frequency in that client's own labels, aligning the
+two. Off by default. See defect 23 and backlog item C7.
+
+## 10. The optimiser
+
+`pFedMeOptimizer` ([fedoptimizer.py:71](../FLAlgorithms/optimizers/fedoptimizer.py#L71)),
+which is stochastic gradient descent with one extra term.
+
+Plain SGD moves each parameter against its gradient, scaled by the learning rate
+`α`. This optimiser adds the proximal pull toward the team model, so each step
+moves the client both toward lower loss and toward its team.
+
+`--optimizer` is parsed and never read, so the string has no effect. See defect 12.
+
+## 11. What one training step is
+
+| Term | Meaning here |
+|---|---|
+| Batch | `--batch_size` samples drawn from the client's data, default 124 |
+| Step | one batch, one forward pass, one backward pass, one parameter update |
+| `--local_iters` | how many such steps a client takes per team round |
+
+`--local_iters` counts **steps, not epochs**. An epoch is one pass over all the
+client's data; a step uses one batch. With `--local_iters 20` a client takes
+twenty batches, which on a client holding twenty thousand rows is far less than
+one epoch.
+
 ---
 
 # Glossary
 
 | Term | Meaning |
 |---|---|
+| Backward pass | Computing gradients by propagating error from the loss back through the model |
+| Batch size | Number of samples in one gradient step. `--batch_size`, default 124 |
+| CNN | Convolutional neural network. Uses convolution layers that detect local patterns. Image datasets only here |
+| Convex | A function with a single minimum, so optimisation cannot get stuck elsewhere. `mclr` gives a convex problem, `dnn` and `cnn` do not |
+| Cross-entropy loss | Loss measuring the gap between predicted and true class distributions. `CrossEntropyLoss` applies softmax internally, so it expects raw scores |
+| DNN | Deep neural network. Here: linear layer, ReLU, linear layer, optionally a second hidden layer |
+| Forward pass | Running input through the model to produce an output |
+| Hidden layer | A layer between input and output. `HIDDEN_LAYERS` selects one or two |
+| Learning rate | How far a parameter moves per step. `α` for clients, `η` for teams, `β` for the global model |
+| Logits | Raw model outputs before softmax. Not what these models emit; they emit log-probabilities |
+| Log-probability | The logarithm of a probability. Numerically stabler than the probability itself |
+| log_softmax | Softmax followed by logarithm. The final operation of every model here |
+| Loss function | The number training minimises. Measures how wrong a prediction is |
+| MCLR | Multi-class logistic regression. One linear layer to the classes. The paper's strongly convex setting |
+| NLLLoss | Negative log likelihood loss. Expects log-probabilities. The loss every intrusion detection run in this project uses |
+| Non-convex | A function with multiple minima. `dnn` and `cnn` give non-convex problems |
+| Optimiser | The rule updating parameters from gradients. Here `pFedMeOptimizer`, SGD plus a proximal pull |
+| ReLU | Rectified linear unit. Passes positive values through and sets negatives to zero |
+| SGD | Stochastic gradient descent. Updating parameters using the gradient from one batch rather than the whole dataset |
+| Softmax | Converts raw outputs into a probability distribution over classes, each in [0,1] and summing to one |
+| Step | One batch through forward pass, backward pass and parameter update. What `--local_iters` counts |
+| Strongly convex | Convex with a guaranteed curvature, giving stronger convergence guarantees. The paper's `mclr` setting |
 | Accuracy | Fraction of predictions that are correct. Dominated by the majority class on imbalanced data |
 | Adjusted Rand index (ARI) | Agreement between two partitions of the same items, corrected for chance. 1 is identical, 0 is chance |
 | Aggregation | Combining parameters from several models into one, here by averaging |

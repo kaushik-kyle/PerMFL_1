@@ -41,6 +41,8 @@ reported.
 
 | 23 | `FLAlgorithms/users/userPerMFL.py:17-22` | the loss is unweighted `NLLLoss` for every IDS configuration, while the reported metric is macro F1. On an 81.7 per cent benign corpus the objective optimises something the metric does not measure. Not a defect in the released code, a mismatch between it and this project's evaluation. Addressed behind `CLASS_WEIGHTS=1`, off by default | open |
 
+| 24 | `FLAlgorithms/users/userPerMFL.py:16` | the loss branch tests `model_name == "Mclr_CrossEntropy"`, which is not among the values `--model_name` accepts. Unreachable | open |
+
 ## Why 5 to 9 were worked around rather than patched
 
 Defects 5, 6, 7 and 8 all sit on the `Emnist` path and interact. Patching them in
