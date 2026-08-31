@@ -444,6 +444,57 @@ This is at lambda_team 1.5, where global macro F1 is 0.248. Section 8b shows
 collapse or merely sharpens the same two or three classes is untested, and it
 decides whether the sweep result is operationally meaningful.
 
+## 8d. Per-class detection across the lambda_team range
+
+CICIDS2017, global model, seed 0. Confusion matrices from exp 2700, 2701, 2820.
+
+| Configuration | GM macro F1 | Classes detected | Attack classes sent entirely to BENIGN |
+|---|---|---|---|
+| PerMFL, lambda_team 0.05 | 0.1461 | 2 of 9 | 3 of 8 |
+| Split-λ, lambda_team 1.5 | 0.2500 | 3 of 9 | 5 of 8 |
+| **Split-λ, lambda_team 12.0** | **0.5499** | **7 of 9** | **1 of 8** |
+
+Per-class rates at 12.0: BENIGN 0.99, Bot 0.64, BruteForce 0.41, DDoS 0.69,
+DoS 0.66, Infiltration 0.22, WebAttack 0.63.
+
+This retracts the concern recorded in section 8c. At lambda_team 1.5 Split-λ
+scored better while failing more dangerously, sending five of eight attack
+classes wholly to BENIGN against PerMFL's three. That observation holds at that
+operating point and does not generalise. At 12.0 the failure mode is close to
+eliminated, and four classes gain detection that neither other configuration
+had at all.
+
+The operating point therefore matters for deployability, not only for the
+headline number. At 1.5 the global model is not usable as a detector. At 12.0 it
+plausibly is.
+
+## 8e. The clustering trigger, tested as designed
+
+CICIDS2017, lambda_team 1.5, three seeds per setting, exp 2800-2805. Thresholds
+read from 1782 reclustering events logged during B7.
+
+| Trigger | Fires per 100 rounds | ARI mean | ARI sd | PM macro F1 | GM macro F1 |
+|---|---|---|---|---|---|
+| Gate open, the default | 99 | 0.338 | 0.189 | 0.5202 +- 0.0068 | 0.2480 +- 0.0072 |
+| Loose gate | 26 | 0.311 | 0.145 | 0.5194 +- 0.0060 | 0.2485 +- 0.0075 |
+| Tight gate | 24 | 0.322 | 0.145 | 0.5181 +- 0.0082 | 0.2489 +- 0.0081 |
+
+The trigger works mechanically: gating cuts reclustering to roughly a quarter of
+rounds and cuts ARI variance from 0.189 to 0.145.
+
+It changes nothing measurable. All differences in both tiers fall inside one
+standard deviation. Reclustering a quarter as often performs identically.
+
+The clustering also does not recover the domain structure at any setting. ARI
+stays near 0.32, well above chance and far from the 1.0 that recovering the true
+day-domains would give. Gating stops the partition thrashing; it does not make
+it correct.
+
+Read with the earlier null across oracle, random and derived team assignment,
+the picture is consistent: the team tier carries so little weight at these
+settings that how teams are formed cannot matter. This answers defect 22, which
+recorded that the trigger had never been exercised.
+
 ## 9. Floors and ceilings
 
 | Quantity | Metric | Value |
