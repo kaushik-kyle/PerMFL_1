@@ -11,6 +11,15 @@ set -u
 cd "${0:A:h}/.."
 PY=.venv/bin/python
 BATCH="${1:-}"; DRY="${2:-}"
+PAR="${PAR:-3}"            # concurrent runs; override with PAR=n tools/run.sh ...
+typeset -ga _pids=()
+slot_wait() {
+  while (( ${#_pids} >= PAR )); do
+    wait $_pids[1] 2>/dev/null
+    _pids=("${(@)_pids[2,-1]}")
+  done
+}
+slot_drain() { for p in $_pids; do wait $p 2>/dev/null; done; _pids=() }
 LOGROOT="logs/${BATCH}"
 
 EM_BASE="--algorithm PerMFL --dataset Emnist10 --model_name mclr --lamda 0.5 --gamma 1.5 --beta 0.6 --alpha 0.01 --eta 0.03 --num_team_iters 10 --local_iters 20 --num_teams 4 --p_teams 4 --num_labels 2 --group_division 0"
@@ -34,16 +43,20 @@ emit() {  # $1 exp  $2 log-label  $3... flags
     print -r -- "# started : $(date -u +%FT%TZ)"
     print -r -- "# ---"
   } > "$log"
-  local t0=$(date +%s)
+  slot_wait
+  {
+  t0=$(date +%s)
   eval "$cmd" >> "$log" 2>&1
-  local rc=$?
-  local t1=$(date +%s)
+  rc=$?
+  t1=$(date +%s)
   { print -r -- "# ---"
     print -r -- "# ended   : $(date -u +%FT%TZ)"
     print -r -- "# elapsed : $((t1-t0))s"
     print -r -- "# exit    : $rc"; } >> "$log"
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$exp" "$label" "$rc" "$((t1-t0))" "$(date -u +%FT%TZ)" "$cmd" >> "$LOGROOT/manifest.tsv"
   print "  exp$exp $label exit=$rc $((t1-t0))s"
+  } &
+  _pids+=($!)
 }
 
 case "$BATCH" in
@@ -111,5 +124,10 @@ B7)  # lamda_team sweep at one heterogeneity setting
     emit $i "lt${LT}_seed$s" ${=CI_BASE} --lamda_team $LT --seed $s; i=$((i+1))
   done; done ;;
 *)
-  print "usage: tools/run.sh {list|B1|B2|B2L|B3|B7|C1|C3|C7|ALL} [--dry]"; exit 1 ;;
+  print "usage: tools/run.sh {list|B1|B2|B2L|B3|B7|C1|C3|C7|ALL} [--dry]"
+  print "       PAR=n to set concurrency (default 3)"
+  exit 1 ;;
 esac
+
+slot_drain
+[[ "$DRY" == "--dry" ]] || print "batch $BATCH complete at $(date -u +%FT%TZ)"
