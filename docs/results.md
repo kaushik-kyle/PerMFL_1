@@ -189,25 +189,45 @@ Critical value at two degrees of freedom is 4.303. The benefit grows as
 heterogeneity falls, which is the opposite of what was predicted before the
 sweep ran.
 
-## 5. The one regression
+## 5. The regression that did not survive
 
-TON-IoT under the `domain` partition, exp 916-925, five pairs. This is the most
-heterogeneous configuration measured, JSD 0.6879. Metric is **macro F1**, higher
-is better.
+TON-IoT under the `domain` partition, exp 916-925, five pairs at T=10 with
+L=500, showed Split-λ making the global model **worse**: macro F1 0.0917 to
+0.0403, zero wins in five, with global accuracy pinned at 0.2369, the
+majority-class floor.
 
-| Pair | PerMFL (GM) | Split-λ (GM) | Delta GM |
-|---|---|---|---|
-| 916/917 | 0.1068 | 0.0483 | -0.0585 |
-| 918/919 | 0.0822 | 0.0383 | -0.0439 |
-| 920/921 | 0.1188 | 0.0383 | -0.0805 |
-| 922/923 | 0.0767 | 0.0383 | -0.0384 |
-| 924/925 | 0.0740 | 0.0383 | -0.0357 |
-| **mean** | 0.0917 | 0.0403 | **-0.0514**, t = -6.21 |
+Re-run at a converged horizon, T=100 with L=20, five seeds, exp 2920-2929:
 
-Split-λ wins 0/5. Its GM accuracy is 0.2369 in four of the five, which is
-exactly the majority-class floor, so the global model has collapsed to
-predicting `normal`. The personalised model still improved in all five pairs,
-PM macro F1 0.1561 to 0.1701 and similar.
+| Metric | Direction | PerMFL | Split-λ | Delta | t | Wins |
+|---|---|---|---|---|---|---|
+| PM macro F1 | higher better | 0.7895 +- 0.0081 | 0.8328 +- 0.0147 | +0.0433 | 4.78 | 5/5 |
+| PM accuracy | higher better | 0.8508 +- 0.0091 | 0.9009 +- 0.0117 | +0.0500 | 7.18 | 5/5 |
+| GM macro F1 | higher better | 0.1007 +- 0.0251 | 0.1574 +- 0.0110 | +0.0567 | 4.14 | 5/5 |
+| GM accuracy | higher better | 0.2238 +- 0.0541 | 0.3633 +- 0.0194 | +0.1396 | 4.59 | 5/5 |
+
+The regression reverses completely. It was an artefact of measuring both arms
+before either had converged, and the earlier runs are superseded.
+
+This was the project's only negative result. It should still be reported, along
+with the reason it disappeared, rather than dropped: the earlier configuration
+stopped at ten global rounds with five hundred local steps, a shape that appears
+nowhere in the paper and was not comparable to any other dataset here.
+
+## 5b. NSL-KDD at a converged horizon
+
+Exp 2900-2909, five seeds, T=100, L=20.
+
+| Metric | Direction | PerMFL | Split-λ | Delta | t | Wins |
+|---|---|---|---|---|---|---|
+| PM macro F1 | higher better | 0.5073 +- 0.0278 | 0.5109 +- 0.0233 | +0.0036 | 1.64 | 4/5 |
+| PM accuracy | higher better | 0.7850 +- 0.0305 | 0.7858 +- 0.0289 | +0.0008 | 0.82 | 3/5 |
+| GM macro F1 | higher better | 0.2619 +- 0.0713 | 0.4515 +- 0.0067 | +0.1896 | 5.99 | 5/5 |
+| GM accuracy | higher better | 0.5268 +- 0.0670 | 0.7210 +- 0.0073 | +0.1941 | 6.59 | 5/5 |
+
+The sharpest tier separation measured anywhere in this project: the global model
+gains 0.19 on both metrics while the personalised model does not move. This is
+what the update rules predict, since the separated coefficient enters only the
+team update.
 
 ## 6. EMNIST-10, the paper's own dataset
 
@@ -494,6 +514,33 @@ Read with the earlier null across oracle, random and derived team assignment,
 the picture is consistent: the team tier carries so little weight at these
 settings that how teams are formed cannot matter. This answers defect 22, which
 recorded that the trigger had never been exercised.
+
+## 8f. Class-weighted loss changes nothing
+
+CICIDS2017, three seeds, `CLASS_WEIGHTS=1`, exp 2830-2835, against the
+unweighted runs at the same configuration.
+
+| Arm | PM macro F1 | GM macro F1 |
+|---|---|---|
+| PerMFL unweighted | 0.4118 +- 0.0325 | 0.1229 +- 0.0216 |
+| PerMFL weighted | 0.4060 +- 0.0319 | 0.1228 +- 0.0216 |
+| Split-λ unweighted | 0.5202 +- 0.0068 | 0.2480 +- 0.0072 |
+| Split-λ weighted | 0.5202 +- 0.0062 | 0.2489 +- 0.0080 |
+
+Per-class detection is unchanged: BENIGN 1.00, Bot 0.39, DDoS 0.68 in both.
+
+The hypothesis was that the objective and the metric disagree, unweighted
+`NLLLoss` against macro F1 on an 81.7 per cent benign corpus, and that aligning
+them would lift per-class recall. Aligning them changes nothing.
+
+An untested explanation: weights are computed per client from that client's own
+labels. Under domain partitioning a client may hold only two or three classes,
+so inverse-frequency weighting within a client is close to uniform, while the
+imbalance the weights were meant to counter lives across clients. Weights drawn
+from the pooled distribution would test this.
+
+The flag was verified active: `CLASS_WEIGHTS=1` appears in the recorded command
+and the captured environment for every C7 run.
 
 ## 9. Floors and ceilings
 
